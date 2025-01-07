@@ -11,6 +11,25 @@ import {
   AnyOfInput
 } from './FormFields';
 
+const resolveReference = (schema, definitions) => {
+  if (schema.$ref) {
+    // Extract the definition name from the reference (e.g., "#/definitions/fill" -> "fill")
+    const refPath = schema.$ref.split('/');
+    const defName = refPath[refPath.length - 1];
+    
+    if (definitions && definitions[defName]) {
+      // Merge the referenced definition with any additional properties
+      return {
+        ...definitions[defName],
+        ...Object.fromEntries(
+          Object.entries(schema).filter(([key]) => key !== '$ref')
+        ),
+      };
+    }
+  }
+  return schema;
+};
+
 const SchemaField = ({
   path,
   schema,
@@ -20,7 +39,8 @@ const SchemaField = ({
   onToggle,
   nestingLevel = 0,
   getValue,
-  formData
+  formData,
+  definitions
 }) => {
   const hasChildren = 
     (schema.type === 'object' && schema.properties) ||
@@ -30,19 +50,26 @@ const SchemaField = ({
     
   const fieldName = path.split('.').pop();
 
-  // Merge allOf schemas if present
   const resolveSchema = (schema) => {
-    if (schema.allOf) {
-      return schema.allOf.reduce((merged, subSchema) => ({
+    // First resolve any references
+    const resolvedRef = resolveReference(schema, definitions);
+    
+    if (!resolvedRef.allOf) return resolvedRef;
+    
+    return resolvedRef.allOf.reduce((merged, subSchema) => {
+      const resolved = resolveSchema(subSchema); // Handle nested allOf
+      return {
         ...merged,
-        ...subSchema,
+        ...resolved,
         properties: {
           ...(merged.properties || {}),
-          ...(subSchema.properties || {})
+          ...Object.entries(resolved.properties || {}).reduce((acc, [key, value]) => ({
+            ...acc,
+            [key]: key === '*' ? resolveSchema(value) : resolveReference(value, definitions)
+          }), {})
         }
-      }), {});
-    }
-    return schema;
+      };
+    }, {});
   };
 
   const resolvedSchema = resolveSchema(schema);
@@ -64,7 +91,7 @@ const SchemaField = ({
     }
 
     // Special case: Handle wildcard fields
-    if (fieldName === '*') {
+    if (fieldName === '*' && !schema.properties && !schema.allOf) {
       return false;
     }
 
@@ -72,9 +99,12 @@ const SchemaField = ({
   };
 
   const renderInput = () => {
+    // Resolve references first
+    const resolvedSchema = resolveReference(schema, definitions);
+    
     // Handle allOf
-    if (schema.allOf) {
-      const mergedSchema = resolveSchema(schema);
+    if (resolvedSchema.allOf) {
+      const mergedSchema = resolveSchema(resolvedSchema);
       return renderInput(mergedSchema);
     }
 
@@ -200,14 +230,20 @@ const SchemaField = ({
     if (!hasChildren) {
       return <div className="mt-1">{renderInput()}</div>;
     }
-
+  
     if (isExpanded) {
       // Handle normal object properties
       if (resolvedSchema.properties) {
         return (
           <div className="mt-2">
             {Object.entries(resolvedSchema.properties)
-              .filter(([_, childSchema]) => shouldRenderField(childSchema))
+              .filter(([key, childSchema]) => {
+                // Special handling for wildcards
+                if (key === '*') {
+                  return childSchema.properties || childSchema.allOf;
+                }
+                return shouldRenderField(childSchema);
+              })
               .map(([childKey, childSchema]) => {
                 const childPath = `${path}.${childKey}`;
                 return (

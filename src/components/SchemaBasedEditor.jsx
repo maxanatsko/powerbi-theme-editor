@@ -123,6 +123,7 @@ const SchemaBasedEditor = () => {
         onToggle={toggleNode}
         formData={formData}
         getValue={getValue}
+        definitions={schema.definitions || {}}
       />
     );
   };

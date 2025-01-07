@@ -6,29 +6,8 @@ import {
   EnumInput,
   TextInput,
   NumberInput,
-  BooleanInput,
-  OneOfInput,
-  AnyOfInput
+  BooleanInput
 } from './FormFields';
-
-const resolveReference = (schema, definitions) => {
-  if (schema.$ref) {
-    // Extract the definition name from the reference (e.g., "#/definitions/fill" -> "fill")
-    const refPath = schema.$ref.split('/');
-    const defName = refPath[refPath.length - 1];
-    
-    if (definitions && definitions[defName]) {
-      // Merge the referenced definition with any additional properties
-      return {
-        ...definitions[defName],
-        ...Object.fromEntries(
-          Object.entries(schema).filter(([key]) => key !== '$ref')
-        ),
-      };
-    }
-  }
-  return schema;
-};
 
 const SchemaField = ({
   path,
@@ -37,312 +16,161 @@ const SchemaField = ({
   onChange,
   isExpanded,
   onToggle,
-  nestingLevel = 0,
-  getValue,
-  formData,
-  definitions
+  renderField,
+  nestingLevel = 0
 }) => {
-  const hasChildren = 
-    (schema.type === 'object' && schema.properties) ||
-    schema.allOf || 
-    schema.anyOf ||
-    (schema.type === 'array' && schema.items);
-    
-  const fieldName = path.split('.').pop();
-
-  const resolveSchema = (schema) => {
-    // First resolve any references
-    const resolvedRef = resolveReference(schema, definitions);
-    
-    if (!resolvedRef.allOf) return resolvedRef;
-    
-    return resolvedRef.allOf.reduce((merged, subSchema) => {
-      const resolved = resolveSchema(subSchema); // Handle nested allOf
-      return {
-        ...merged,
-        ...resolved,
+  // Handle allOf by merging schemas
+  const resolvedSchema = React.useMemo(() => {
+    if (schema.allOf) {
+      return schema.allOf.reduce((acc, current) => ({
+        ...acc,
+        ...current,
         properties: {
-          ...(merged.properties || {}),
-          ...Object.entries(resolved.properties || {}).reduce((acc, [key, value]) => ({
-            ...acc,
-            [key]: key === '*' ? resolveSchema(value) : resolveReference(value, definitions)
-          }), {})
+          ...(acc.properties || {}),
+          ...(current.properties || {})
         }
-      };
-    }, {});
-  };
-
-  const resolvedSchema = resolveSchema(schema);
-
-  const getOneOfOptions = (oneOfArray) => {
-    return oneOfArray.map(option => ({
-      value: option.const,
-      label: option.title || option.const
-    }));
-  };
-
-  const shouldRenderField = (fieldSchema) => {
-    if (!fieldSchema || Object.keys(fieldSchema).length === 0) {
-      return false;
+      }), { ...schema });
     }
-    
-    if (fieldSchema.type === 'object' && !fieldSchema.properties && !fieldSchema.allOf) {
-      return false;
-    }
+    return schema;
+  }, [schema]);
 
-    // Special case: Handle wildcard fields
-    if (fieldName === '*' && !schema.properties && !schema.allOf) {
-      return false;
-    }
-
-    return true;
-  };
+  // Check if this schema has children (including handling wildcards)
+  const hasChildren = (
+    resolvedSchema.type === 'object' && 
+    (resolvedSchema.properties || 
+     (resolvedSchema.additionalProperties && typeof resolvedSchema.additionalProperties === 'object') ||
+     Object.keys(resolvedSchema).some(key => key === '*'))
+  );
 
   const renderInput = () => {
-    // Resolve references first
-    const resolvedSchema = resolveReference(schema, definitions);
-    
-    // Handle allOf
-    if (resolvedSchema.allOf) {
-      const mergedSchema = resolveSchema(resolvedSchema);
-      return renderInput(mergedSchema);
-    }
-
-    // Handle oneOf
-    if (schema.oneOf) {
+    // Handle arrays
+    if (resolvedSchema.type === 'array' && resolvedSchema.items) {
       return (
-        <OneOfInput
-          path={path}
-          value={value}
-          onChange={onChange}
-          options={getOneOfOptions(schema.oneOf)}
-        />
+        <div className="mt-2">
+          <button
+            onClick={() => {
+              const newValue = [...(value || []), {}];
+              onChange(path, newValue);
+            }}
+            className="px-2 py-1 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+          >
+            Add Item
+          </button>
+          {(value || []).map((item, index) => (
+            <div key={index} className="mt-2 border-l-2 border-gray-200 pl-2">
+              {Object.entries(resolvedSchema.items.properties || {}).map(([propKey, propSchema]) =>
+                renderField(`${path}.${index}.${propKey}`, propSchema, nestingLevel + 1)
+              )}
+              <button
+                onClick={() => {
+                  const newValue = [...(value || [])];
+                  newValue.splice(index, 1);
+                  onChange(path, newValue);
+                }}
+                className="mt-2 px-2 py-1 text-sm text-red-600 rounded hover:bg-red-50"
+              >
+                Remove Item
+              </button>
+            </div>
+          ))}
+        </div>
       );
     }
 
-    // Handle anyOf
-    if (schema.anyOf) {
-      return (
-        <AnyOfInput
-          path={path}
-          value={value}
-          onChange={onChange}
-          options={schema.anyOf}
-        />
-      );
+    // Handle enums
+    if (resolvedSchema.enum) {
+      return <EnumInput path={path} value={value} onChange={onChange} options={resolvedSchema.enum} />;
     }
 
-    // Handle array type
-    if (schema.type === 'array') {
-      if (!schema.items) {
-        console.warn(`Array field ${path} has no items schema`);
-        return null;
-      }
-      return (
-        <ArrayInput
-          path={path}
-          value={value}
-          onChange={onChange}
-          itemSchema={schema.items}
-          getValue={getValue}
-          formData={formData}
-        />
-      );
-    }
-
-    // Handle enum type
-    if (schema.enum) {
-      return (
-        <EnumInput
-          path={path}
-          value={value}
-          onChange={onChange}
-          options={schema.enum}
-        />
-      );
-    }
-
-    // Handle color fields
+    // Detect color fields
     const isColorField = 
-      schema.type === 'string' && (
+      resolvedSchema.type === 'string' && (
         path.toLowerCase().includes('color') ||
-        schema.format === 'color' ||
-        (schema.pattern && /#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})/.test(schema.pattern)) ||
-        (schema.examples && schema.examples.some(ex => /#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})/.test(ex)))
+        resolvedSchema.format === 'color' ||
+        (resolvedSchema.pattern && /#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})/.test(resolvedSchema.pattern)) ||
+        (resolvedSchema.examples && resolvedSchema.examples.some(ex => /#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})/.test(ex)))
       );
 
     if (isColorField) {
-      return (
-        <ColorInput
-          path={path}
-          value={value}
-          onChange={onChange}
-        />
-      );
+      return <ColorInput path={path} value={value} onChange={onChange} />;
     }
 
-    // Handle basic types
-    switch (schema.type) {
+    // Handle other primitive types
+    switch (resolvedSchema.type) {
       case 'number':
       case 'integer':
-        return (
-          <NumberInput
-            path={path}
-            value={value}
-            onChange={onChange}
-            minimum={schema.minimum}
-            maximum={schema.maximum}
-          />
-        );
+        return <NumberInput path={path} value={value} onChange={onChange} />;
       case 'boolean':
-        return (
-          <BooleanInput
-            path={path}
-            value={value}
-            onChange={onChange}
-          />
-        );
+        return <BooleanInput path={path} value={value} onChange={onChange} />;
       case 'string':
-        return (
-          <TextInput
-            path={path}
-            value={value}
-            onChange={onChange}
-            pattern={schema.pattern}
-            minLength={schema.minLength}
-            maxLength={schema.maxLength}
-          />
-        );
+        return <TextInput path={path} value={value} onChange={onChange} />;
       default:
-        if (hasChildren) {
-          return null;
-        }
-        console.warn(`Unsupported schema type: ${schema.type} for field ${path}`);
         return null;
     }
   };
 
-  if (!shouldRenderField(schema)) {
+  const renderChildren = () => {
+    const properties = resolvedSchema.properties || {};
+    const wildcardProperties = Object.keys(resolvedSchema).filter(key => key === '*').reduce((acc, key) => ({
+      ...acc,
+      [key]: resolvedSchema[key]
+    }), {});
+
+    return (
+      <div className="ml-4 mt-2">
+        {Object.entries({ ...properties, ...wildcardProperties }).map(([childKey, childSchema]) => {
+          const childPath = path ? `${path}.${childKey}` : childKey;
+          return renderField(childPath, childSchema, nestingLevel + 1);
+        })}
+      </div>
+    );
+  };
+
+  const fieldName = path.split('.').pop();
+  const input = renderInput();
+  
+  // Skip empty objects without properties or children
+  if (resolvedSchema.type === 'object' && !hasChildren) {
     return null;
   }
 
-  const renderField = () => {
-    if (!hasChildren) {
-      return <div className="mt-1">{renderInput()}</div>;
-    }
-  
-    if (isExpanded) {
-      // Handle normal object properties
-      if (resolvedSchema.properties) {
-        return (
-          <div className="mt-2">
-            {Object.entries(resolvedSchema.properties)
-              .filter(([key, childSchema]) => {
-                // Special handling for wildcards
-                if (key === '*') {
-                  return childSchema.properties || childSchema.allOf;
-                }
-                return shouldRenderField(childSchema);
-              })
-              .map(([childKey, childSchema]) => {
-                const childPath = `${path}.${childKey}`;
-                return (
-                  <SchemaField
-                    key={childPath}
-                    path={childPath}
-                    schema={childSchema}
-                    value={getValue(formData, childPath)}
-                    onChange={onChange}
-                    isExpanded={isExpanded}
-                    onToggle={onToggle}
-                    nestingLevel={nestingLevel + 1}
-                    getValue={getValue}
-                    formData={formData}
-                  />
-                );
-              })}
-          </div>
-        );
-      }
-      
-      // Handle array items
-      if (schema.type === 'array' && schema.items) {
-        return (
-          <div className="mt-2">
-            <SchemaField
-              path={`${path}.items`}
-              schema={schema.items}
-              value={value}
-              onChange={onChange}
-              isExpanded={isExpanded}
-              onToggle={onToggle}
-              nestingLevel={nestingLevel + 1}
-              getValue={getValue}
-              formData={formData}
-            />
-          </div>
-        );
-      }
-    }
-
-    return null;
-  };
-
-  const renderPropertyType = () => {
-    if (schema.oneOf) {
-      return 'oneOf';
-    }
-    if (schema.anyOf) {
-      return 'anyOf';
-    }
-    if (schema.allOf) {
-      return 'allOf';
-    }
-    return schema.type;
-  };
-
   return (
-    <div className={`mt-2 ${nestingLevel > 0 ? 'ml-4' : ''}`}>
+    <div className={`mt-2 ${nestingLevel > 0 ? `ml-${Math.min(nestingLevel * 2, 8)}` : ''}`}>
       <div className="flex items-start">
         {hasChildren && (
           <button
             onClick={() => onToggle(path)}
-            className="mt-1 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded group"
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
+            className="mt-1 p-1 hover:bg-gray-100 rounded"
           >
             {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300" />
+              <ChevronDown className="w-4 h-4" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300" />
+              <ChevronRight className="w-4 h-4" />
             )}
           </button>
         )}
+        {!hasChildren && <span className="w-6" />}
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <label 
-              className={`font-medium ${nestingLevel > 0 ? 'text-sm' : ''} text-gray-700 dark:text-gray-200`}
-              htmlFor={path.replace(/\./g, '-')}
-            >
-              {schema.title || fieldName}
-            </label>
-            {renderPropertyType() && (
-              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-300">
-                {renderPropertyType()}
+          <div className="flex items-center">
+            <span className={`font-medium ${nestingLevel > 0 ? 'text-sm' : ''} text-gray-700`}>
+              {resolvedSchema.title || fieldName}
+            </span>
+            {resolvedSchema.type && (
+              <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
+                {resolvedSchema.type}
               </span>
             )}
-            {schema.required && (
-              <span className="text-red-500 dark:text-red-400 text-xs">*</span>
+            {resolvedSchema.required && (
+              <span className="ml-2 text-red-500 text-xs">*required</span>
             )}
           </div>
-          
-          {schema.description && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {schema.description}
-            </p>
+          {resolvedSchema.description && (
+            <div className="text-sm text-gray-500 mt-1">
+              {resolvedSchema.description}
+            </div>
           )}
-          
-          {renderField()}
+          {input}
+          {isExpanded && hasChildren && renderChildren()}
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import SchemaField from './SchemaField';
 import { getValue, updateValue } from '../utils/formUtils';
 
 const SchemaBasedEditor = () => {
-  const [expandedNodes, setExpandedNodes] = useState(new Set(['properties']));
+  const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,6 +13,7 @@ const SchemaBasedEditor = () => {
     name: "My Theme",
     dataColors: ["#01B8AA", "#374649", "#FD625E", "#F2C80F"],
   });
+
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -22,11 +23,6 @@ const SchemaBasedEditor = () => {
         setError(null);
         const schemaData = await getLatestSchema();
         setSchema(schemaData);
-        
-        // Automatically expand some default nodes
-        const defaultExpanded = new Set(['properties']);
-        // Add any additional default expanded paths here
-        setExpandedNodes(defaultExpanded);
       } catch (err) {
         setError('Failed to load schema: ' + err.message);
       } finally {
@@ -46,18 +42,11 @@ const SchemaBasedEditor = () => {
           const imported = JSON.parse(e.target.result);
           setFormData(imported);
           
-          // Expand all paths in the imported data
-          const newExpanded = new Set(['properties']);
-          const expandPaths = (obj, path = '') => {
-            if (typeof obj === 'object' && obj !== null) {
-              Object.keys(obj).forEach(key => {
-                const newPath = path ? `${path}.${key}` : key;
-                newExpanded.add(newPath);
-                expandPaths(obj[key], newPath);
-              });
-            }
-          };
-          expandPaths(imported);
+          // Only expand top-level nodes
+          const newExpanded = new Set();
+          Object.keys(imported).forEach(key => {
+            newExpanded.add(key);
+          });
           setExpandedNodes(newExpanded);
         } catch (error) {
           alert('Error parsing theme file. Please ensure it\'s a valid JSON file.');
@@ -81,24 +70,15 @@ const SchemaBasedEditor = () => {
   };
 
   const toggleNode = (path) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(path)) {
-      // When collapsing, also remove all child paths
-      const pathPrefix = path + '.';
-      Array.from(newExpanded)
-        .filter(p => p.startsWith(pathPrefix))
-        .forEach(p => newExpanded.delete(p));
-      newExpanded.delete(path);
-    } else {
-      // When expanding, ensure all parent paths are also expanded
-      const parts = path.split('.');
-      let currentPath = '';
-      parts.forEach(part => {
-        currentPath = currentPath ? `${currentPath}.${part}` : part;
-        newExpanded.add(currentPath);
-      });
-    }
-    setExpandedNodes(newExpanded);
+    setExpandedNodes(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(path)) {
+        newExpanded.delete(path);
+      } else {
+        newExpanded.add(path);
+      }
+      return newExpanded;
+    });
   };
 
   const isNodeExpanded = (path) => {
@@ -109,61 +89,40 @@ const SchemaBasedEditor = () => {
     setFormData(prev => updateValue(prev, path, value));
   };
 
-  const renderField = (key, schemaProps, parentPath = '') => {
-    const currentPath = parentPath ? `${parentPath}.${key}` : key;
-    
+  const renderField = (path, schema, nestingLevel = 0) => {
     return (
       <SchemaField
-        key={currentPath}
-        path={currentPath}
-        schema={schemaProps}
-        value={getValue(formData, currentPath)}
+        key={path}
+        path={path}
+        schema={schema}
+        value={getValue(formData, path)}
         onChange={handleValueChange}
-        isExpanded={isNodeExpanded(currentPath)}
+        isExpanded={isNodeExpanded(path)}
         onToggle={toggleNode}
-        formData={formData}
-        getValue={getValue}
-        definitions={schema.definitions || {}}
+        renderField={(childPath, childSchema, childLevel) => 
+          renderField(childPath, childSchema, childLevel)
+        }
+        nestingLevel={nestingLevel}
       />
     );
   };
 
-  const getSchemaVersion = (schema) => {
-    if (!schema) return 'Unknown';
-    
-    const schemaField = schema.$schema || '';
-    const filenameMatch = schemaField.match(/reportThemeSchema-(\d+\.\d+)\.json/);
-    if (filenameMatch) return filenameMatch[1];
-    
-    if (schema.$version) return schema.$version;
-    
-    const schemaId = schema.$id || '';
-    const idMatch = schemaId.match(/reportThemeSchema-(\d+\.\d+)\.json/);
-    if (idMatch) return idMatch[1];
-    
-    return 'Unknown';
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center flex-1">
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 border-2 border-gray-500 dark:border-gray-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-700 dark:text-gray-200">Loading schema...</span>
-        </div>
+  if (loading) return (
+    <div className="flex items-center justify-center flex-1">
+      <div className="flex items-center space-x-2">
+        <div className="w-4 h-4 border-2 border-gray-500 dark:border-gray-400 border-t-transparent rounded-full animate-spin" />
+        <span className="text-gray-700 dark:text-gray-200">Loading schema...</span>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="flex-1 p-4">
-        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 p-4 rounded-lg">
-          {error}
-        </div>
+  if (error) return (
+    <div className="flex-1 p-4">
+      <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 p-4 rounded-lg">
+        {error}
       </div>
-    );
-  }
+    </div>
+  );
 
   if (!schema) return null;
 
@@ -174,7 +133,7 @@ const SchemaBasedEditor = () => {
         <div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Power BI Theme Editor</h2>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Schema Version: {getSchemaVersion(schema)}
+            Schema Version: {schema.$version || 'Unknown'}
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -205,10 +164,8 @@ const SchemaBasedEditor = () => {
       {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-auto bg-white dark:bg-gray-800">
         <div className="p-4">
-          {schema && schema.properties && (
-            Object.entries(schema.properties).map(([key, schemaProps]) => 
-              renderField(key, schemaProps)
-            )
+          {schema.properties && Object.entries(schema.properties).map(([key, prop]) => 
+            renderField(key, prop, 0)
           )}
         </div>
       </div>

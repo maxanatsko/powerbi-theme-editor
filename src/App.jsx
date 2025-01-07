@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ThemeForm } from './components/core/ThemeForm';
-import { Download, Upload } from 'lucide-react';
+import { Download, Upload, Code } from 'lucide-react';
 
 const SCHEMA_URL = 'https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/refs/heads/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.138.json';
 
@@ -8,6 +8,7 @@ const App = () => {
   const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showJson, setShowJson] = useState(false);
   const fileInputRef = useRef(null);
   const themeFormRef = useRef(null);
 
@@ -35,7 +36,7 @@ const App = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
+      <div className="h-screen w-screen flex items-center justify-center">
         <div className="text-lg">Loading schema...</div>
       </div>
     );
@@ -43,7 +44,7 @@ const App = () => {
 
   if (error) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
+      <div className="h-screen w-screen flex items-center justify-center">
         <div className="text-red-600">
           Error: {error}
           <button 
@@ -71,6 +72,13 @@ const App = () => {
               className="hidden"
               accept=".json"
             />
+            <button 
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
+              onClick={() => setShowJson(!showJson)}
+            >
+              <Code className="w-4 h-4 mr-2 inline" />
+              View JSON
+            </button>
             <button 
               className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
               onClick={() => fileInputRef.current?.click()}
@@ -101,10 +109,20 @@ const App = () => {
           </div>
         </div>
       </header>
-      <main className="flex-grow overflow-auto w-full">
-        <div className="w-full h-full px-6">
+      <main className="flex-grow overflow-hidden w-full flex">
+        <div className="w-full h-full px-6 overflow-auto">
           <ThemeForm ref={themeFormRef} schema={schema} />
         </div>
+        {showJson && (
+          <div className="w-1/3 h-full border-l border-gray-200 overflow-auto bg-gray-50">
+            <div className="p-4">
+              <h2 className="text-lg font-semibold mb-4">Current Theme JSON</h2>
+              <pre className="bg-white p-4 rounded border text-sm font-mono whitespace-pre-wrap">
+                {JSON.stringify(themeFormRef.current?.getThemeData() || {}, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -5,7 +5,7 @@ import { FieldRenderer } from './FieldRenderer';
 
 export const ThemeForm = forwardRef(({ schema, initialData = {} }, ref) => {
   const resolvedSchema = useSchemaResolution(schema);
-  const { formData, updateField } = useFormState(initialData);
+  const { formData, updateField } = useFormState(initialData, resolvedSchema);
 
   useImperativeHandle(ref, () => ({
     getThemeData: () => {

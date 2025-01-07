@@ -6,7 +6,8 @@ import {
   EnumInput,
   TextInput,
   NumberInput,
-  BooleanInput
+  BooleanInput,
+  SchemaInput
 } from './FormFields';
 
 const SchemaField = ({
@@ -17,7 +18,9 @@ const SchemaField = ({
   isExpanded,
   onToggle,
   renderField,
-  nestingLevel = 0
+  nestingLevel = 0,
+  getValue,  // Add this
+  formData   // Add this
 }) => {
   // Handle allOf by merging schemas
   const resolvedSchema = React.useMemo(() => {
@@ -43,39 +46,26 @@ const SchemaField = ({
   );
 
   const renderInput = () => {
+    // Special handling for $schema field
+    if (path === '$schema' || path.endsWith('.$schema')) {
+      return <SchemaInput path={path} value={value} onChange={onChange} />;
+    }
+
     // Handle arrays
     if (resolvedSchema.type === 'array' && resolvedSchema.items) {
       return (
-        <div className="mt-2">
-          <button
-            onClick={() => {
-              const newValue = [...(value || []), {}];
-              onChange(path, newValue);
-            }}
-            className="px-2 py-1 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-          >
-            Add Item
-          </button>
-          {(value || []).map((item, index) => (
-            <div key={index} className="mt-2 border-l-2 border-gray-200 pl-2">
-              {Object.entries(resolvedSchema.items.properties || {}).map(([propKey, propSchema]) =>
-                renderField(`${path}.${index}.${propKey}`, propSchema, nestingLevel + 1)
-              )}
-              <button
-                onClick={() => {
-                  const newValue = [...(value || [])];
-                  newValue.splice(index, 1);
-                  onChange(path, newValue);
-                }}
-                className="mt-2 px-2 py-1 text-sm text-red-600 rounded hover:bg-red-50"
-              >
-                Remove Item
-              </button>
-            </div>
-          ))}
-        </div>
+        <ArrayInput
+          path={path}
+          value={value}
+          onChange={onChange}
+          itemSchema={resolvedSchema.items}
+          getValue={getValue || (() => {})}
+          formData={formData || {}}
+          renderField={renderField}  // Add this line
+        />
       );
     }
+      
 
     // Handle enums
     if (resolvedSchema.enum) {

@@ -1,23 +1,94 @@
 import React from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, AlertCircle } from 'lucide-react';
+import { getLatestSchema, RAW_GITHUB_URL } from './schemaVersions';
+import ColorArrayField from './ColorArrayField';  // Add this import
 
-export const ColorInput = ({ path, value, onChange }) => (
-  <div className="flex items-center space-x-2">
-    <input
-      type="color"
-      value={value || '#000000'}
-      onChange={(e) => onChange(path, e.target.value)}
-      className="w-8 h-8 rounded cursor-pointer"
-    />
-    <input
-      type="text"
-      value={value || ''}
-      onChange={(e) => onChange(path, e.target.value)}
-      className="flex-1 px-2 py-1 border rounded"
-      placeholder="#000000"
-    />
-  </div>
-);
+export const SchemaInput = ({ path, value, onChange }) => {
+  React.useEffect(() => {
+    // Only fetch and set if no schema is currently set
+    if (!value) {
+      getLatestSchema()
+        .then(schema => {
+          // Build the complete raw GitHub URL
+          const fullSchemaUrl = `${RAW_GITHUB_URL}/${schema.$schema}`;
+          onChange(path, fullSchemaUrl);
+        })
+        .catch(error => {
+          console.error('Failed to fetch latest schema:', error);
+        });
+    }
+  }, []);
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={value || ''}
+        disabled={true}
+        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-600 cursor-not-allowed"
+      />
+      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+        <AlertCircle className="w-4 h-4 text-gray-400" />
+      </div>
+    </div>
+  );
+};
+
+export const ColorInput = ({ path, value, onChange }) => {
+  const [isValid, setIsValid] = React.useState(true);
+  
+  // Validate hex color
+  const validateColor = (color) => {
+    const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    return hexRegex.test(color);
+  };
+
+  // Handle text input change
+  const handleTextChange = (e) => {
+    const newValue = e.target.value;
+    const valid = validateColor(newValue);
+    setIsValid(valid);
+    
+    // Only update if valid or empty
+    if (valid || newValue === '') {
+      onChange(path, newValue);
+    }
+  };
+
+  // Handle color picker change
+  const handlePickerChange = (e) => {
+    const newValue = e.target.value;
+    setIsValid(true);
+    onChange(path, newValue);
+  };
+
+  return (
+    <div className="flex flex-col space-y-1">
+      <div className="flex items-center space-x-2">
+        <input
+          type="color"
+          value={value || '#000000'}
+          onChange={handlePickerChange}
+          className="w-10 h-10 rounded cursor-pointer"
+        />
+        <input
+          type="text"
+          value={value || ''}
+          onChange={handleTextChange}
+          className={`flex-1 px-3 py-2 border rounded ${
+            !isValid ? 'border-red-500' : 'border-gray-200'
+          }`}
+          placeholder="#000000"
+        />
+      </div>
+      {!isValid && (
+        <span className="text-xs text-red-500">
+          Please enter a valid hex color (e.g., #FF0000 or #F00)
+        </span>
+      )}
+    </div>
+  );
+};
 
 export const ArrayInput = ({
   path,
@@ -27,10 +98,29 @@ export const ArrayInput = ({
   getValue,
   formData,
   allowAdd = true,
-  allowDelete = true
+  allowDelete = true,
+  renderField  // Add this prop
 }) => {
   console.log('ArrayInput render:', { path, value, itemSchema });
   
+  // Handle color arrays
+  const isColorArray = 
+    path.endsWith('dataColors') || 
+    path.toLowerCase().includes('colors') ||
+    (itemSchema?.type === 'string' && 
+     (itemSchema?.format === 'color' || 
+      path.toLowerCase().includes('color')));
+
+  if (isColorArray) {
+    return (
+      <ColorArrayField
+        value={value}
+        onChange={(newValue) => onChange(path, newValue)}
+        label={path.split('.').pop().replace(/([A-Z])/g, ' $1').trim()}
+      />
+    );
+  }
+
   // Ensure value is always an array
   const arrayValue = Array.isArray(value) ? value : [];
 
@@ -74,17 +164,7 @@ export const ArrayInput = ({
     <div className="space-y-2">
       {arrayValue.map((item, index) => (
         <div key={index} className="flex items-start space-x-2">
-          <SchemaField
-            path={`${path}.${index}`}
-            schema={itemSchema}
-            value={item}
-            onChange={(_, value) => handleItemChange(index, value)}
-            isExpanded={true}
-            onToggle={() => {}}
-            nestingLevel={0}
-            getValue={getValue}
-            formData={formData}
-          />
+          {renderField(`${path}.${index}`, itemSchema, 0)}
           {allowDelete && (
             <button
               onClick={() => handleRemoveItem(index)}
@@ -122,41 +202,6 @@ export const EnumInput = ({ path, value, onChange, options = [] }) => (
     ))}
   </select>
 );
-
-export const OneOfInput = ({ path, value, onChange, options }) => {
-  return (
-    <select
-      value={value || ''}
-      onChange={(e) => onChange(path, e.target.value)}
-      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
-    >
-      <option value="">Select...</option>
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-};
-
-export const AnyOfInput = ({ path, value, onChange, options }) => {
-  return (
-    <select
-      id={path.replace(/\./g, '-')}
-      value={value || ''}
-      onChange={(e) => onChange(path, e.target.value)}
-      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-    >
-      <option value="">Select an option</option>
-      {options.map((option, index) => (
-        <option key={index} value={option.const || option.title || option}>
-          {option.title || option.const || option}
-        </option>
-      ))}
-    </select>
-  );
-};
 
 export const TextInput = ({ path, value, onChange }) => (
   <input

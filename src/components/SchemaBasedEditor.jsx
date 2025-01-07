@@ -3,6 +3,7 @@ import { Download, Upload } from 'lucide-react';
 import { getLatestSchema } from './schemaVersions';
 import SchemaField from './SchemaField';
 import { getValue, updateValue } from '../utils/formUtils';
+import { cleanEditedFormData, clearEditedFields } from '../utils/editTracker';
 
 const SchemaBasedEditor = () => {
   const [expandedNodes, setExpandedNodes] = useState(new Set());
@@ -11,7 +12,7 @@ const SchemaBasedEditor = () => {
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     name: "My Theme",
-    dataColors: ["#01B8AA", "#374649", "#FD625E", "#F2C80F"],
+    dataColors: [],
   });
 
   const fileInputRef = useRef(null);
@@ -41,6 +42,7 @@ const SchemaBasedEditor = () => {
         try {
           const imported = JSON.parse(e.target.result);
           setFormData(imported);
+          clearEditedFields(); // Reset edited fields tracking when importing new file
           
           // Only expand top-level nodes
           const newExpanded = new Set();
@@ -57,7 +59,13 @@ const SchemaBasedEditor = () => {
   };
 
   const handleExport = () => {
-    const themeJson = JSON.stringify(formData, null, 2);
+    const cleanedData = cleanEditedFormData(formData);
+    // Ensure we always include the name in the export
+    const exportData = {
+      name: formData.name,
+      ...cleanedData
+    };
+    const themeJson = JSON.stringify(exportData, null, 2);
     const blob = new Blob([themeJson], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

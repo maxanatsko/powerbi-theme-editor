@@ -31,3 +31,20 @@ export interface FieldProps {
   value: any;
   onChange: (path: string, value: any) => void;
 }
+
+export interface EnumOption {
+  const: string | number | boolean;
+  title: string;
+}
+
+export interface SchemaProperty {
+  // Add to existing interface:
+  oneOf?: EnumOption[];
+  allOf?: SchemaProperty[];
+  title?: string;
+}
+
+export interface ValidationError {
+  path: string;
+  message: string;
+}

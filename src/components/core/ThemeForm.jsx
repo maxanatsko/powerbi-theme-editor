@@ -1,16 +1,21 @@
-import React, { useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useCallback, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { useSchemaResolution } from '../../hooks/useSchemaResolution';
 import { useFormState } from '../../hooks/useFormState';
 import { FieldRenderer } from './FieldRenderer';
 
 export const ThemeForm = forwardRef(({ schema, initialData = {} }, ref) => {
   const resolvedSchema = useSchemaResolution(schema);
-  const { formData, updateField } = useFormState(initialData, resolvedSchema);
+  const { formData, updateField, resetForm } = useFormState(initialData, resolvedSchema);
+
+  // Initialize form with schema URL
+  useEffect(() => {
+    if (schema?.$schema && !formData.$schema) {
+      resetForm({ ...formData, $schema: schema.$schema });
+    }
+  }, [schema, formData.$schema]);
 
   useImperativeHandle(ref, () => ({
-    getThemeData: () => {
-      return formData;
-    }
+    getThemeData: () => formData
   }));
 
   const handleFieldChange = useCallback((path, value) => {

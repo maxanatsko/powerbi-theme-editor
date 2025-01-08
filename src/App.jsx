@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { ThemeForm } from './components/core/ThemeForm';
 import { Download, Upload, Code } from 'lucide-react';
-
-const SCHEMA_URL = 'https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/refs/heads/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.138.json';
+import { getLatestSchema } from './components/schemaVersions';
 
 const App = () => {
   const [schema, setSchema] = useState(null);
+  const [schemaVersion, setSchemaVersion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showJson, setShowJson] = useState(false);
@@ -17,12 +17,9 @@ const App = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(SCHEMA_URL);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch schema: ${response.statusText}`);
-        }
-        const schemaData = await response.json();
+        const { schema: schemaData, version } = await getLatestSchema();
         setSchema(schemaData);
+        setSchemaVersion(version);
       } catch (err) {
         console.error('Error loading schema:', err);
         setError(err.message);
@@ -62,9 +59,16 @@ const App = () => {
     <div className="flex flex-col h-screen w-screen">
       <header className="flex-none bg-white shadow w-full">
         <div className="flex justify-between items-center w-full px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Power BI Theme Editor
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Power BI Theme Editor
+            </h1>
+            {schemaVersion && (
+              <div className="text-sm text-gray-600 mt-1">
+                Schema Version: <span className="font-medium text-blue-800">v{schemaVersion}</span>
+              </div>
+            )}
+          </div>
           <div className="space-x-4">
             <input
               type="file"

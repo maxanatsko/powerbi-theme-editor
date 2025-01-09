@@ -52,6 +52,7 @@ export const ArrayField = ({ path, schema, value = [], onChange }) => {
               schema={schema.items}
               value={item}
               onChange={(_, value) => handleItemChange(index, value)}
+              required={schema.required?.includes(key)}
             />
           </div>
         ))}

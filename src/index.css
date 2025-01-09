@@ -70,3 +70,23 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+@keyframes highlightProperty {
+  0% {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.highlight-found-property {
+  animation: highlightProperty 2s ease-out;
+}
+
+.field-container {
+  scroll-margin-top: 100px;
+}

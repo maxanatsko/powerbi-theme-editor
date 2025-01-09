@@ -43,6 +43,7 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
                 schema={fieldSchema}
                 value={value[key]}
                 onChange={handleFieldChange}
+                required={schema.required?.includes(key)}
               />
             );
           })}

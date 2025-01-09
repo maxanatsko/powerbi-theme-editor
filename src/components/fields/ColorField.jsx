@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const ColorField = ({ path, schema, value = '#000000', onChange }) => {
+export const ColorField = ({ path, schema, value = '#000000', onChange, required }) => {
   const handleChange = (newValue) => {
     // Ensure the color is in the correct format (#RRGGBB or #RRGGBBAA)
     const colorRegex = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
@@ -13,6 +13,7 @@ export const ColorField = ({ path, schema, value = '#000000', onChange }) => {
     <div className="my-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {schema.title || path}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="flex items-center space-x-2">
         <input

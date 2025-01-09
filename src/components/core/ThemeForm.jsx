@@ -3,7 +3,7 @@ import { useSchemaResolution } from '../../hooks/useSchemaResolution';
 import { useFormState } from '../../hooks/useFormState';
 import { FieldRenderer } from './FieldRenderer';
 
-export const ThemeForm = forwardRef(({ schema, initialData = {} }, ref) => {
+export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref) => {
   const resolvedSchema = useSchemaResolution(schema);
   const { formData, updateField, resetForm } = useFormState(initialData, resolvedSchema);
 
@@ -14,8 +14,29 @@ export const ThemeForm = forwardRef(({ schema, initialData = {} }, ref) => {
     }
   }, [schema, formData.$schema]);
 
+  useEffect(() => {
+    onChange?.(formData);
+  }, [formData, onChange]);
+
+  // Add expandPath to the methods exposed via ref
   useImperativeHandle(ref, () => ({
-    getThemeData: () => formData
+    getThemeData: () => formData,
+    expandPath: (pathSegments) => {
+      try {
+        // Example implementation - adjust based on your form structure
+        let currentPath = '';
+        for (const segment of pathSegments) {
+          currentPath = currentPath ? `${currentPath}.${segment}` : segment;
+          const sectionId = `section-${currentPath.replace(/\./g, '-')}`;
+          const section = document.getElementById(sectionId);
+          if (section) {
+            section.setAttribute('data-expanded', 'true');
+          }
+        }
+      } catch (error) {
+        console.error('Error expanding path:', error);
+      }
+    }
   }));
 
   const handleFieldChange = useCallback((path, value) => {
@@ -26,7 +47,7 @@ export const ThemeForm = forwardRef(({ schema, initialData = {} }, ref) => {
   if (!resolvedSchema) return null;
 
   return (
-    <div className="w-full h-full overflow-auto space-y-4">
+    <div className="w-full h-full overflow-auto space-y-4 pb-8">
       {Object.entries(resolvedSchema.properties || {}).map(([key, fieldSchema]) => (
         <FieldRenderer
           key={key}
@@ -34,18 +55,9 @@ export const ThemeForm = forwardRef(({ schema, initialData = {} }, ref) => {
           schema={fieldSchema}
           value={formData[key]}
           onChange={handleFieldChange}
+          required={resolvedSchema.required?.includes(key)}
         />
       ))}
-
-      {/* Debug view */}
-      <details className="mt-8 p-4 bg-gray-50 rounded-lg">
-        <summary className="cursor-pointer text-gray-700 font-medium">
-          Debug: Current Form Data
-        </summary>
-        <pre className="mt-2 p-2 bg-white rounded text-sm overflow-auto">
-          {JSON.stringify(formData, null, 2)}
-        </pre>
-      </details>
     </div>
   );
 });

@@ -1,14 +1,15 @@
 import React from 'react';
 import { resolveEnumOptions } from '../../utils/schemaUtils';
 
-export const EnumField = ({ path, schema, value, onChange }) => {
-  const options = resolveEnumOptions(schema);
-
-  return (
-    <div className="my-2">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {schema.title || path}
-      </label>
+export const EnumField = ({ path, schema, value, onChange, required }) => {
+    const options = resolveEnumOptions(schema);
+  
+    return (
+      <div className="my-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {schema.title || path}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
+        </label>
       <select
         value={value || ''}
         onChange={(e) => onChange(path, e.target.value)}

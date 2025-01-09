@@ -1,12 +1,13 @@
 import React from 'react';
 
-export const StringField = ({ path, schema, value = '', onChange }) => {
+export const StringField = ({ path, schema, value = '', onChange, required }) => {
   const isSchemaField = path === '$schema';
   
   return (
     <div className="my-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {schema.title || path}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <input
         type="text"

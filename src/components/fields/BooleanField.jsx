@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const BooleanField = ({ path, schema, value, onChange }) => {
+export const BooleanField = ({ path, schema, value, onChange, required }) => {
   const id = `field-${path}`;
   
   return (
@@ -14,6 +14,7 @@ export const BooleanField = ({ path, schema, value, onChange }) => {
       />
       <label htmlFor={id} className="ml-2 block text-sm text-gray-900">
         {schema.title || path.split('.').pop()}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
     </div>
   );

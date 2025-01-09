@@ -2,9 +2,11 @@ import React, { useCallback, forwardRef, useImperativeHandle, useEffect } from '
 import { useSchemaResolution } from '../../hooks/useSchemaResolution';
 import { useFormState } from '../../hooks/useFormState';
 import { FieldRenderer } from './FieldRenderer';
+import { traverseSchema } from '../../utils/schemaUtils';
 
 export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref) => {
   const resolvedSchema = useSchemaResolution(schema);
+  const processedSchema = resolvedSchema ? traverseSchema(resolvedSchema) : null;
   const { formData, updateField, resetForm } = useFormState(initialData, resolvedSchema);
 
   // Initialize form with schema URL
@@ -18,12 +20,10 @@ export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref
     onChange?.(formData);
   }, [formData, onChange]);
 
-  // Add expandPath to the methods exposed via ref
   useImperativeHandle(ref, () => ({
     getThemeData: () => formData,
     expandPath: (pathSegments) => {
       try {
-        // Example implementation - adjust based on your form structure
         let currentPath = '';
         for (const segment of pathSegments) {
           currentPath = currentPath ? `${currentPath}.${segment}` : segment;
@@ -40,24 +40,33 @@ export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref
   }));
 
   const handleFieldChange = useCallback((path, value) => {
-    console.log('Field changed:', { path, value }); // For debugging
     updateField(path, value);
   }, [updateField]);
 
-  if (!resolvedSchema) return null;
+  if (!processedSchema) return null;
+
+  const renderFields = (schema, basePath = '') => {
+    if (schema.type === 'object' && schema.fields) {
+      return Object.entries(schema.fields).map(([key, fieldSchema]) => {
+        const fieldPath = basePath ? `${basePath}.${key}` : key;
+        return (
+          <FieldRenderer
+            key={fieldPath}
+            path={fieldPath}
+            schema={fieldSchema.schema}
+            value={formData[key]}
+            onChange={handleFieldChange}
+            required={resolvedSchema.required?.includes(key)}
+          />
+        );
+      });
+    }
+    return null;
+  };
 
   return (
     <div className="w-full h-full overflow-auto space-y-4 pb-8">
-      {Object.entries(resolvedSchema.properties || {}).map(([key, fieldSchema]) => (
-        <FieldRenderer
-          key={key}
-          path={key}
-          schema={fieldSchema}
-          value={formData[key]}
-          onChange={handleFieldChange}
-          required={resolvedSchema.required?.includes(key)}
-        />
-      ))}
+      {renderFields(processedSchema)}
     </div>
   );
 });

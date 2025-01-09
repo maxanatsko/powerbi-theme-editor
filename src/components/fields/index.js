@@ -11,8 +11,8 @@ export const fieldComponents = {
   number: NumberField,
   integer: NumberField,
   boolean: BooleanField,
-  color: ColorField,
-  enum: EnumField,
-  object: ObjectField,
   array: ArrayField,
+  object: ObjectField,
+  enum: EnumField,
+  color: ColorField
 };

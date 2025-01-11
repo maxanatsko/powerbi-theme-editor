@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { FieldRenderer } from '../core/FieldRenderer';
 import { resolveSchemaRef, createDefaultValue } from '../../utils/schemaUtils';
 import { ErrorBoundary } from '../core/ErrorBoundary';
@@ -129,25 +129,27 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
 
   return (
     <div className="my-4 border rounded-lg bg-gray-50">
-      <div className="p-3 flex justify-between items-center">
-        <div>
-          <span className="font-medium text-gray-700">
-            {schema.title || path.split('.').pop()}
-          </span>
-          {schema.description && (
-            <p className="text-sm text-gray-500 mt-1">{schema.description}</p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={isResolving || !schemaToUse}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Add Item
-        </button>
-      </div>
+      <div className="p-3 flex justify-between items-start gap-4">
+  <div className="flex-1">
+    <span className="font-medium text-gray-700">
+      {schema.title || path.split('.').pop()}
+    </span>
+    {schema.description && (
+      <p className="text-sm text-gray-500 mt-1 max-w-1xl">
+        {schema.description}
+      </p>
+    )}
+  </div>
+  <button
+  type="button"
+  onClick={handleAdd}
+  className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"
+  disabled={isResolving || !schemaToUse}
+>
+  <PlusCircle className="w-4 h-4" />
+  Add Item
+</button>
+</div>
       <div className="bg-white border-t">
         {normalizedValue.map((item, index) => (
           <ErrorBoundary key={`${path}[${index}]`}>

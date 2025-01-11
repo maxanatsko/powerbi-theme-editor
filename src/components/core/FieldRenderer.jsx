@@ -6,6 +6,7 @@ import { ObjectField } from '../fields/ObjectField';
 import { ArrayField } from '../fields/ArrayField';
 import { ColorField } from '../fields/ColorField';
 import { EnumField } from '../fields/EnumField';
+import { IconField } from '../fields/iconField';
 import { resolveFieldType, resolveSchemaRef } from '../../utils/schemaUtils';
 
 // Enhanced schema cache with TTL
@@ -57,6 +58,15 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
   // Enhanced field type resolution with union type support
   const fieldType = useMemo(() => {
     if (!resolvedSchema) return null;
+
+    if (resolvedSchema.anyOf) {
+      const isIconField = resolvedSchema.anyOf.some(type => 
+        type.type === 'object' && 
+        type.patternProperties && 
+        type.patternProperties['.*']?.$ref?.includes('themeIcon')
+      );
+      if (isIconField) return 'icon';
+    }
 
     // Handle array of types (union types)
     if (Array.isArray(resolvedSchema.type)) {
@@ -141,6 +151,8 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
         return <ColorField {...fieldProps} />;
       case 'enum':
         return <EnumField {...fieldProps} />;
+        case 'icon':
+  return <IconField {...fieldProps} />;
       default:
         console.warn(`Unknown field type: ${fieldType}`, resolvedSchema);
         // Fallback to string field for unknown types

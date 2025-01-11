@@ -15,6 +15,7 @@ export interface Schema {
   $schema: string;
   type: string;
   properties: Record<string, SchemaProperty>;
+  definitions?: Record<string, SchemaProperty>;
 }
 
 export interface FormData {
@@ -48,3 +49,4 @@ export interface ValidationError {
   path: string;
   message: string;
 }
+

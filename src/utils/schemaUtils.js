@@ -58,6 +58,93 @@ const DEFAULT_DEFINITIONS = {
       scaling: { type: 'string', enum: ['fit', 'fill', 'stretch'] },
       transparency: { type: 'number', minimum: 0, maximum: 100 }
     }
+  },
+  dataBars: {
+    type: "object",
+    properties: {
+      positiveColor: {
+        type: "string",
+        format: "color",
+        description: "Color for positive values in data bars"
+      },
+      negativeColor: {
+        type: "string",
+        format: "color",
+        description: "Color for negative values in data bars"
+      },
+      axisColor: {
+        type: "string",
+        format: "color",
+        description: "Color for the axis in data bars"
+      },
+      reverseDirection: {
+        type: "boolean",
+        description: "Whether to reverse the direction of data bars"
+      }
+    }
+  },
+
+  displayUnitsWithoutAuto: {
+    type: "string",
+    enum: [
+      "None",
+      "Thousands",
+      "Millions",
+      "Billions",
+      "Trillions"
+    ],
+    description: "Display units without auto option"
+  },
+  itemLocation: {
+    type: "string",
+    description: "Location for visual link item in bookmark actions",
+    enum: [
+      "report", // Link to another report
+      "page",   // Link to another page
+      "bookmark", // Link to a bookmark
+      "url",    // Link to external URL
+      "back"    // Back navigation
+    ],
+    default: "bookmark"
+  },
+  icon: {
+    type: "object",
+    properties: {
+      type: {
+        type: "string",
+        enum: ["none", "default", "custom"],
+        description: "Type of icon to display"
+      },
+      position: {
+        type: "string",
+        enum: ["left", "right", "top", "bottom", "center"],
+        description: "Position of the icon relative to content"
+      },
+      size: {
+        type: "number",
+        minimum: 0,
+        maximum: 100,
+        description: "Size of the icon in pixels"
+      },
+      color: {
+        type: "string",
+        format: "color",
+        description: "Color of the icon"
+      },
+      show: {
+        type: "boolean",
+        description: "Whether to show or hide the icon",
+        default: true
+      }
+    }
+  },
+  paragraphs: {
+    type: "array",
+    description: "Text paragraphs grouping",
+    items: {
+      type: "object"
+      // No need to define properties here as they're already handled by the parent schema
+    }
   }
 };
 

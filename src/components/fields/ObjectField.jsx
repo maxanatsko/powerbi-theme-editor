@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { FieldRenderer } from '../core/FieldRenderer';
+import { getPathDisplayInfo } from '../../utils/pathUtils';
 
 export const ObjectField = ({ path, schema, value = {}, onChange }) => {
-  const [isExpanded, setIsExpanded] = useState(false); // Default to collapsed
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Debug logging
+  console.log('ObjectField render with path:', path);
+  console.log('Schema:', schema);
   
   if (!schema.properties) return null;
 
-  // Get nesting level from path to control indentation
-  const nestingLevel = path ? path.split('.').length : 0;
-  const isRoot = nestingLevel === 1; // First level items
+  const displayInfo = getPathDisplayInfo(path);
+  // Debug logging
+  console.log('Display info for path:', displayInfo);
   
-  // Determine field label
-  const fieldLabel = schema.title || path.split('.').pop();
+  const { label, tooltip, nestingLevel } = displayInfo;
+  const isRoot = nestingLevel === 1;
 
   return (
     <div className="w-full border rounded-lg bg-gray-50">
@@ -26,8 +31,11 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
           ) : (
             <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
           )}
-          <span className={`ml-2 ${isRoot ? 'font-semibold' : 'font-medium'} text-gray-700`}>
-            {fieldLabel}
+          <span 
+            className={`ml-2 ${isRoot ? 'font-semibold' : 'font-medium'} text-gray-700`}
+            title={tooltip || undefined}
+          >
+            {label}
           </span>
         </div>
       </div>
@@ -36,6 +44,8 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
         <div className="p-4 bg-white rounded-b-lg border-t">
           {Object.entries(schema.properties).map(([key, fieldSchema]) => {
             const fieldPath = path ? `${path}.${key}` : key;
+            // Debug logging for child paths
+            console.log('Creating child with path:', fieldPath);
             return (
               <FieldRenderer
                 key={key}
@@ -53,14 +63,9 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
   );
   
   function handleFieldChange(fieldPath, newValue) {
-    // Get the current object value
     const currentValue = { ...value };
-    
-    // Update the specific field
     const fieldKey = fieldPath.split('.').pop();
     currentValue[fieldKey] = newValue;
-    
-    // Notify parent of the entire object change
     onChange(path, currentValue);
   }
 };

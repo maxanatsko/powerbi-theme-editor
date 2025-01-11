@@ -1,10 +1,15 @@
 import React from 'react';
+import { getPathDisplayInfo } from '../../utils/pathUtils';
 
 export const NumberField = ({ path, schema, value = 0, onChange, required }) => {
+  const { label } = getPathDisplayInfo(path);
+  
+  const displayLabel = schema.title || label;
+  
   return (
     <div className="my-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        {schema.title || path}
+        {displayLabel}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <input

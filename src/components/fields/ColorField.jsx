@@ -1,6 +1,10 @@
 import React from 'react';
+import { getPathDisplayInfo } from '../../utils/pathUtils';
 
 export const ColorField = ({ path, schema, value = '#000000', onChange, required }) => {
+  const { label } = getPathDisplayInfo(path);
+  const displayLabel = schema.title || label;
+
   const handleChange = (newValue) => {
     // Ensure the color is in the correct format (#RRGGBB or #RRGGBBAA)
     const colorRegex = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
@@ -12,7 +16,7 @@ export const ColorField = ({ path, schema, value = '#000000', onChange, required
   return (
     <div className="my-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        {schema.title || path}
+        {displayLabel}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="flex items-center space-x-2">

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ThemeForm } from './components/core/ThemeForm';
 import TreeLayout from './components/core/TreeLayout';
 import { Download, Upload, Code } from 'lucide-react';
@@ -17,52 +17,105 @@ const App = () => {
   const [themeData, setThemeData] = useState({});
   const [searchResults, setSearchResults] = useState([]);
 
+  useEffect(() => {
+    if (schema) {
+      console.log('Schema Debug Info:', {
+        type: schema?.type,
+        hasProperties: Boolean(schema?.properties),
+        propertiesLength: schema?.properties ? Object.keys(schema.properties).length : 0,
+        topLevel: Object.keys(schema || {}),
+        visualStyles: Boolean(schema?.properties?.visualStyles),
+        firstLevelKeys: schema?.properties ? Object.keys(schema.properties) : [],
+        visualStylesKeys: schema?.properties?.visualStyles?.properties 
+          ? Object.keys(schema.properties.visualStyles.properties)
+          : []
+      });
+    }
+  }, [schema]);
+
   const handleSearch = (searchTerm) => {
     console.log('Search triggered with term:', searchTerm);
-    console.log('Current schema:', schema);
     
-    if (!searchTerm.trim() || !schema) {
+    if (!searchTerm?.trim() || !schema) {
       setSearchResults([]);
       return;
     }
     
     const results = [];
-    const searchSchemaObject = (obj, path = []) => {
-      if (!obj || typeof obj !== 'object') return;
-  
-      // Search in properties
+    const searchTermLower = searchTerm.toLowerCase();
+    const visited = new Set();
+
+    function searchInObject(obj, path = '') {
+      // Base case checks
+      if (!obj || typeof obj !== 'object' || visited.has(obj)) return;
+      visited.add(obj);
+
+      // Check current object properties
       if (obj.properties) {
-        Object.entries(obj.properties).forEach(([key, prop]) => {
-          const currentPath = [...path, key];
-          const matchInTitle = key.toLowerCase().includes(searchTerm.toLowerCase());
-          const matchInDescription = prop.description?.toLowerCase().includes(searchTerm.toLowerCase());
+        Object.entries(obj.properties).forEach(([key, value]) => {
+          const currentPath = path ? `${path}.${key}` : key;
           
-          if (matchInTitle || matchInDescription) {
+          // Check for matches in the current property
+          const matches = {
+            key: key.toLowerCase().includes(searchTermLower),
+            description: String(value?.description || '').toLowerCase().includes(searchTermLower),
+            type: String(value?.type || '').toLowerCase().includes(searchTermLower)
+          };
+
+          if (matches.key || matches.description || matches.type) {
             results.push({
-              path: currentPath.join('.'),
+              path: currentPath,
               property: key,
-              type: prop.type || 'unknown',
-              description: prop.description || '',
-              matchType: matchInTitle ? 'property' : 'description'
+              type: value?.type || typeof value,
+              description: value?.description || '',
+              matchType: matches.key ? 'property' : matches.description ? 'description' : 'type'
             });
           }
-          
-          // Recursively search in nested properties
-          if (prop.properties || prop.items?.properties) {
-            searchSchemaObject(prop.properties || prop.items?.properties, currentPath);
-          }
+
+          // Continue searching in this property
+          searchInObject(value, currentPath);
         });
       }
-  
-      // Handle arrays
+
+      // Search in array items
       if (obj.items) {
-        searchSchemaObject(obj.items, path);
+        searchInObject(obj.items, `${path}[]`);
       }
-    };
-    
-    searchSchemaObject(schema);
-    console.log('Search results:', results);
-    setSearchResults(results);
+
+      // Search in pattern properties
+      if (obj.patternProperties) {
+        Object.values(obj.patternProperties).forEach(value => {
+          searchInObject(value, path);
+        });
+      }
+
+      // Search in combiners (allOf, anyOf, oneOf)
+      ['allOf', 'anyOf', 'oneOf'].forEach(combiner => {
+        if (Array.isArray(obj[combiner])) {
+          obj[combiner].forEach((item, index) => {
+            searchInObject(item, `${path}${path ? '.' : ''}${combiner}[${index}]`);
+          });
+        }
+      });
+
+      // Search in other object properties
+      Object.entries(obj).forEach(([key, value]) => {
+        if (!['properties', 'items', 'patternProperties', 'allOf', 'anyOf', 'oneOf'].includes(key) &&
+            typeof value === 'object' && value !== null) {
+          const currentPath = path ? `${path}.${key}` : key;
+          searchInObject(value, currentPath);
+        }
+      });
+    }
+
+    try {
+      searchInObject(schema);
+      console.log(`Found ${results.length} results`);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    }
   };
 
   const navigateToProperty = (path) => {

@@ -47,25 +47,29 @@ export const formatPathForDisplay = (path) => {
  * @returns {Object} Display information including label and tooltip
  */
 export const getPathDisplayInfo = (path) => {
-  // Debug logging
-  console.log('Getting display info for path:', path);
-  
   if (!path) return { label: '', tooltip: undefined, nestingLevel: 0 };
   
-  const nestingLevel = path.split('.').length;
-  const isLeafNode = !path.endsWith('*') && !path.endsWith('→*');
+  const segments = path.split('.');
+  const nestingLevel = segments.length;
+  const lastSegment = segments[segments.length - 1];
   
-  const result = {
-    label: formatPathForDisplay(path),
-    tooltip: isLeafNode ? path : undefined,
+  // Handle wildcard segments
+  const isWildcard = lastSegment === '*';
+  const parentSegment = segments[segments.length - 2];
+  
+  let label = formatPathForDisplay(lastSegment);
+  if (isWildcard && parentSegment) {
+    label = `${formatPathForDisplay(parentSegment)} Items`;
+  }
+  
+  return {
+    label,
+    tooltip: path,
     nestingLevel,
-    isArrayContainer: path.endsWith('*'),
-    isArrayItem: path.includes('*[')
+    isArrayContainer: lastSegment === '*',
+    isArrayItem: lastSegment.match(/\*\[\d+\]/),
+    isWildcard
   };
-  
-  // Debug logging
-  console.log('Display info result:', result);
-  return result;
 };
 
 // Helper function to convert camelCase to Title Case

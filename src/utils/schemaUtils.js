@@ -158,10 +158,19 @@ const referenceCache = new Map();
 // schemaUtils.js
 
 export const resolveReference = async (ref, context) => {
-  // Check cache first
-  if (referenceCache.has(ref)) {
-    return referenceCache.get(ref);
-  }
+  // Detailed debug info about context
+  console.log('Resolving reference:', {
+    ref,
+    // Show exact content of definitions
+    definitions: context?.definitions,
+    // Show the full path to definitions
+    contextPath: {
+      hasDefinitions: Boolean(context?.definitions),
+      definitionsDirectly: context?.definitions?.color ? 'Found color directly' : 'No color directly',
+      schemaPath: Boolean(context?.$schema?.definitions),
+      defsPath: Boolean(context?.$defs?.definitions)
+    }
+  });
 
   // Handle local references
   if (ref.startsWith('#')) {
@@ -172,6 +181,12 @@ export const resolveReference = async (ref, context) => {
     if (path[0] === 'definitions') {
       const definitionName = path[1];
       
+      console.log('Definition details:', {
+        lookingFor: definitionName,
+        foundInContext: context?.definitions?.[definitionName],
+        definitionsAvailable: Object.keys(context?.definitions || {})
+      });
+
       // Search in known locations for definitions
       const possibleContexts = [
         context,
@@ -184,19 +199,21 @@ export const resolveReference = async (ref, context) => {
       for (const ctx of possibleContexts) {
         if (ctx.definitions?.[definitionName]) {
           current = ctx;
+
+          // Add debugging
+        console.log('Found definition in context:', {
+          name: definitionName,
+          definition: ctx.definitions[definitionName]
+        });
+
           break;
         }
       }
 
-      // If definition not found in context, use default definition
+      // If definition not found in context, log warning
       if (!current.definitions || !current.definitions[definitionName]) {
-        if (DEFAULT_DEFINITIONS[definitionName]) {
-          console.warn(`Using default definition for ${definitionName}`);
-          // Cache and return the default definition
-          referenceCache.set(ref, DEFAULT_DEFINITIONS[definitionName]);
-          return DEFAULT_DEFINITIONS[definitionName];
-        }
-        throw new Error(`Cannot find definitions section for ${ref}`);
+        console.warn(`Definition not found: ${definitionName}`);
+        throw new Error(`Cannot find definition for ${ref}`);
       }
     }
 
@@ -212,12 +229,6 @@ export const resolveReference = async (ref, context) => {
         current = current[decodedSegment];
         
         if (current === undefined) {
-          // Check if we have a default definition for this path
-          const definitionName = path[path.length - 1];
-          if (DEFAULT_DEFINITIONS[definitionName]) {
-            current = DEFAULT_DEFINITIONS[definitionName];
-            break;
-          }
           throw new Error(`Reference not found at: ${decodedSegment}`);
         }
       }
@@ -226,14 +237,6 @@ export const resolveReference = async (ref, context) => {
       referenceCache.set(ref, current);
       return current;
     } catch (error) {
-      // One last attempt to find a default definition
-      const definitionName = path[path.length - 1];
-      if (DEFAULT_DEFINITIONS[definitionName]) {
-        console.warn(`Falling back to default definition for ${definitionName}`);
-        referenceCache.set(ref, DEFAULT_DEFINITIONS[definitionName]);
-        return DEFAULT_DEFINITIONS[definitionName];
-      }
-      
       console.error(`Error resolving reference ${ref}:`, error);
       throw error;
     }
@@ -553,23 +556,58 @@ export const resolveEnumOptions = (schema) => {
 export const traverseSchema = (schema, path = '') => {
   if (!schema) return null;
 
-  // Handle references that haven't been resolved yet
-  if (schema.$ref) {
-    return {
-      type: 'reference',
-      path,
-      ref: schema.$ref,
-      schema
-    };
+  // Handle allOf first
+  if (schema.allOf) {
+    // Merge allOf schemas while preserving wildcards
+    const mergedSchema = schema.allOf.reduce((acc, curr) => {
+      if (curr.$ref) {
+        // Resolve reference synchronously for now - we'll handle async later
+        const resolved = resolveReference(curr.$ref, schema);
+        curr = resolved || curr;
+      }
+      
+      // Special handling for wildcard properties
+      if (curr.properties?.['*']) {
+        return {
+          ...acc,
+          properties: {
+            ...acc.properties,
+            '*': {
+              ...acc.properties?.['*'],
+              ...curr.properties['*']
+            }
+          }
+        };
+      }
+      
+      // Merge other properties
+      return {
+        ...acc,
+        properties: {
+          ...acc.properties,
+          ...curr.properties
+        }
+      };
+    }, { properties: {} });
+
+    return traverseSchema({ ...schema, ...mergedSchema }, path);
   }
 
-  // Handle wildcards in properties
+  // Then handle wildcards in properties
   if (schema.properties?.['*']) {
     const wildcardSchema = schema.properties['*'];
+    const wildcardPath = path ? `${path}.*` : '*';
+    
     return {
       type: 'wildcardObject',
       path,
-      itemSchema: traverseSchema(wildcardSchema, `${path}.*`),
+      itemSchema: traverseSchema(wildcardSchema, wildcardPath),
+      properties: Object.entries(schema.properties)
+        .filter(([key]) => key !== '*')
+        .reduce((acc, [key, value]) => ({
+          ...acc,
+          [key]: traverseSchema(value, path ? `${path}.${key}` : key)
+        }), {}),
       schema
     };
   }
@@ -588,6 +626,12 @@ export const traverseSchema = (schema, path = '') => {
       }
       return { ...acc, ...curr };
     }, {});
+    
+    // Preserve definitions when merging
+    if (schema.definitions) {
+      mergedSchema.definitions = schema.definitions;
+    }
+    
     return traverseSchema(mergedSchema, path);
   }
 
@@ -597,7 +641,10 @@ export const traverseSchema = (schema, path = '') => {
       type: 'array',
       path,
       items: traverseSchema(schema.items, `${path}[]`),
-      schema
+      schema: {
+        ...schema,
+        definitions: schema.definitions // Preserve definitions
+      }
     };
   }
 
@@ -613,7 +660,10 @@ export const traverseSchema = (schema, path = '') => {
       type: 'object',
       path,
       fields,
-      schema
+      schema: {
+        ...schema,
+        definitions: schema.definitions // Preserve definitions
+      }
     };
   }
 
@@ -621,6 +671,9 @@ export const traverseSchema = (schema, path = '') => {
   return {
     type: resolveFieldType(schema),
     path,
-    schema
+    schema: {
+      ...schema,
+      definitions: schema.definitions // Preserve definitions
+    }
   };
 };

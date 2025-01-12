@@ -5,8 +5,13 @@ import { FieldRenderer } from './FieldRenderer';
 import { traverseSchema } from '../../utils/schemaUtils';
 
 export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref) => {
+  // Use the schema resolution hook
   const resolvedSchema = useSchemaResolution(schema);
+  
+  // Process schema for hierarchical structure
   const processedSchema = resolvedSchema ? traverseSchema(resolvedSchema) : null;
+
+  // Form state management
   const { formData, updateField, resetForm } = useFormState(initialData, resolvedSchema);
 
   // Initialize form with schema URL
@@ -16,10 +21,17 @@ export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref
     }
   }, [schema, formData.$schema]);
 
+  // Notify parent of changes
   useEffect(() => {
     onChange?.(formData);
   }, [formData, onChange]);
 
+  // Handle field changes
+  const handleFieldChange = useCallback((path, value) => {
+    updateField(path, value);
+  }, [updateField]);
+
+  // Expose methods to parent
   useImperativeHandle(ref, () => ({
     getThemeData: () => formData,
     expandPath: (pathSegments) => {
@@ -39,11 +51,10 @@ export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref
     }
   }));
 
-  const handleFieldChange = useCallback((path, value) => {
-    updateField(path, value);
-  }, [updateField]);
-
-  if (!processedSchema) return null;
+  if (!processedSchema) {
+    console.log('No processed schema available');
+    return null;
+  }
 
   const renderFields = (schema, basePath = '') => {
     if (schema.type === 'object' && schema.fields) {
@@ -54,9 +65,10 @@ export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref
             key={fieldPath}
             path={fieldPath}
             schema={fieldSchema.schema}
+            rootSchema={resolvedSchema} // Pass resolved schema as root
             value={formData[key]}
             onChange={handleFieldChange}
-            required={resolvedSchema.required?.includes(key)}
+            required={resolvedSchema?.required?.includes(key)}
           />
         );
       });

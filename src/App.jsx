@@ -17,21 +17,33 @@ const App = () => {
   const [themeData, setThemeData] = useState({});
   const [searchResults, setSearchResults] = useState([]);
 
-  useEffect(() => {
-    if (schema) {
-      console.log('Schema Debug Info:', {
-        type: schema?.type,
-        hasProperties: Boolean(schema?.properties),
-        propertiesLength: schema?.properties ? Object.keys(schema.properties).length : 0,
-        topLevel: Object.keys(schema || {}),
-        visualStyles: Boolean(schema?.properties?.visualStyles),
-        firstLevelKeys: schema?.properties ? Object.keys(schema.properties) : [],
-        visualStylesKeys: schema?.properties?.visualStyles?.properties 
-          ? Object.keys(schema.properties.visualStyles.properties)
-          : []
-      });
-    }
-  }, [schema]);
+  React.useEffect(() => {
+    const loadSchema = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const { schema: schemaData, version } = await getLatestSchema();
+        
+        // Initialize the schema resolver with the loaded schema
+        const initializedSchema = {
+          ...schemaData,
+          definitions: {
+            ...schemaData.definitions
+          }
+        };
+        
+        setSchema(initializedSchema);
+        setSchemaVersion(version);
+      } catch (err) {
+        console.error('Error loading schema:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    loadSchema();
+  }, []);
 
   const handleSearch = (searchTerm) => {
     console.log('Search triggered with term:', searchTerm);
@@ -187,6 +199,14 @@ const App = () => {
         setLoading(true);
         setError(null);
         const { schema: schemaData, version } = await getLatestSchema();
+        
+        // Add debug logging
+        console.log('Loaded schema:', {
+          hasDefinitions: Boolean(schemaData?.definitions),
+          definitionsKeys: schemaData?.definitions ? Object.keys(schemaData.definitions) : [],
+          definitions: schemaData?.definitions // Log the actual definitions
+        });
+        
         setSchema(schemaData);
         setSchemaVersion(version);
       } catch (err) {

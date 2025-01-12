@@ -22,10 +22,19 @@ export async function getLatestSchema() {
     }
 
     const latestSchema = schemaFiles[0];
+    console.log('Loading schema from:', latestSchema.rawUrl);
+    
     const schemaResponse = await fetch(latestSchema.rawUrl);
     if (!schemaResponse.ok) throw new Error('Failed to fetch schema content');
     
     const schemaData = await schemaResponse.json();
+    
+    // Debug schema data
+    console.log('Loaded schema data:', {
+      hasDefinitions: Boolean(schemaData?.definitions),
+      definitionsKeys: schemaData?.definitions ? Object.keys(schemaData.definitions) : [],
+      definitions: schemaData?.definitions
+    });
     
     // Ensure schema has the correct raw GitHub URL
     schemaData.$schema = latestSchema.rawUrl;

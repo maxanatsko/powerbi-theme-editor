@@ -21,48 +21,47 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
   useEffect(() => {
     const resolveSchema = async () => {
       if (!schema.items) return;
-
-      // Check cache with TTL
+  
+      // Check cache
       const cached = itemSchemaCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         setResolvedItemSchema(cached.schema);
         return;
       }
-
-      if (resolveAttempts.current >= 3) {
-        console.warn(`Max resolution attempts reached for ${path}`);
-        // Use a simplified fallback schema for the items
-        const fallbackSchema = {
-          type: 'object',
-          properties: {}
-        };
-        setResolvedItemSchema(fallbackSchema);
-        return;
-      }
-
+  
       setIsResolving(true);
       try {
         let resolved;
         if (schema.items.$ref) {
+          // Try to resolve reference
           resolved = await resolveSchemaRef(schema.items, schema);
+          
+          // If resolution fails, provide fallback based on path
           if (!resolved) {
-            throw new Error(`Failed to resolve schema reference: ${schema.items.$ref}`);
+            if (path.includes('color') || path.includes('fill')) {
+              resolved = {
+                type: 'string',
+                format: 'color'
+              };
+            } else if (path.includes('image')) {
+              resolved = {
+                type: 'object',
+                properties: {
+                  url: { type: 'string' },
+                  scaling: { 
+                    type: 'string',
+                    enum: ['normal', 'fit', 'fill', 'stretch']
+                  }
+                }
+              };
+            } else {
+              resolved = schema.items;
+            }
           }
         } else {
           resolved = schema.items;
         }
-
-        // For dataColors array, provide a specific structure
-        if (path === 'dataColors' || path.endsWith('.dataColors')) {
-          resolved = {
-            type: 'object',
-            properties: {
-              name: { type: 'string' },
-              color: { type: 'string', format: 'color' }
-            }
-          };
-        }
-
+  
         itemSchemaCache.set(cacheKey, {
           schema: resolved,
           timestamp: Date.now()
@@ -70,29 +69,24 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
         
         setResolvedItemSchema(resolved);
         setError(null);
-        resolveAttempts.current = 0;
       } catch (err) {
-        console.error('Error resolving schema reference:', err);
-        resolveAttempts.current++;
+        console.error('Error resolving schema:', err);
         
-        if (resolveAttempts.current < 3) {
-          // Retry after a delay
-          setTimeout(() => resolveSchema(), 1000 * resolveAttempts.current);
-        } else {
-          // Use fallback schema after max attempts
-          const fallbackSchema = {
-            type: 'object',
-            properties: {
-              value: { type: 'string' }
-            }
-          };
-          setResolvedItemSchema(fallbackSchema);
-        }
+        // Use appropriate fallback schema
+        const fallback = {
+          type: path.includes('color') ? 'string' : 'object',
+          format: path.includes('color') ? 'color' : undefined,
+          properties: path.includes('color') ? undefined : {
+            value: { type: 'string' }
+          }
+        };
+        
+        setResolvedItemSchema(fallback);
       } finally {
         setIsResolving(false);
       }
     };
-
+  
     resolveSchema();
   }, [schema, cacheKey, path]);
 

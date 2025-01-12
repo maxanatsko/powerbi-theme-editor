@@ -566,11 +566,25 @@ export const traverseSchema = (schema, path = '') => {
   // Handle wildcards in properties
   if (schema.properties?.['*']) {
     const wildcardSchema = schema.properties['*'];
+    // Instead of creating a separate wildcard object,
+    // merge the properties directly into the parent
+    const mergedProperties = {
+      ...schema.properties,
+      ...wildcardSchema.properties
+    };
+    delete mergedProperties['*']; // Remove the wildcard entry
+
     return {
-      type: 'wildcardObject',
+      type: 'object',
       path,
-      itemSchema: traverseSchema(wildcardSchema, `${path}.*`),
-      schema
+      fields: Object.entries(mergedProperties).reduce((acc, [key, value]) => {
+        acc[key] = traverseSchema(value, path ? `${path}.${key}` : key);
+        return acc;
+      }, {}),
+      schema: {
+        ...schema,
+        properties: mergedProperties
+      }
     };
   }
 
@@ -578,11 +592,12 @@ export const traverseSchema = (schema, path = '') => {
   if (schema.allOf) {
     const mergedSchema = schema.allOf.reduce((acc, curr) => {
       if (curr.properties?.['*']) {
+        const wildcardProps = curr.properties['*'].properties || {};
         return {
           ...acc,
           properties: {
             ...acc.properties,
-            '*': curr.properties['*']
+            ...wildcardProps
           }
         };
       }
@@ -605,7 +620,8 @@ export const traverseSchema = (schema, path = '') => {
   if (schema.type === 'object' && schema.properties) {
     const fields = {};
     Object.entries(schema.properties).forEach(([key, value]) => {
-      if (key !== '*') { // Skip wildcard property as it's handled separately
+      // Skip the wildcard property as it's handled separately
+      if (key !== '*') {
         fields[key] = traverseSchema(value, path ? `${path}.${key}` : key);
       }
     });

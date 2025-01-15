@@ -1,5 +1,5 @@
 import { useReducer, useCallback } from 'react';
-import { set, get } from 'lodash';
+import lodash from 'lodash';
 
 /**
  * Creates an ordered object that maintains property order based on a schema
@@ -37,7 +37,7 @@ const formReducer = (state, action) => {
   switch (action.type) {
     case 'UPDATE_FIELD': {
       const newState = { ...state };
-      set(newState, action.path, action.value);
+      lodash.set(newState, action.path, action.value);
       return createOrderedObject(action.schema, newState);
     }
     case 'RESET':
@@ -68,7 +68,7 @@ export const useFormState = (initialData = {}, schema = null) => {
   const getFieldValue = useCallback((path) => {
     if (!path) return undefined;
     const normalizedPath = Array.isArray(path) ? path : path.split('.');
-    return get(formData, normalizedPath);
+    return lodash.get(formData, normalizedPath);
   }, [formData]);
 
   const resetForm = useCallback((data = {}) => {

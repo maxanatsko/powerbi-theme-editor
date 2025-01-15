@@ -151,54 +151,6 @@ const DEFAULT_DEFINITIONS = {
 // Cache for resolved references to prevent infinite recursion
 const referenceCache = new Map();
 
-const isColorReference = (ref) => {
-  return ref.endsWith('/color') || ref.includes('definitions/color');
-};
-
-
-/**
- * Resolves internal schema references during preprocessing
- * @param {Object} schema - The schema object containing definitions
- * @param {Object} definitions - The definitions object from the schema
- * @returns {Object} Schema with resolved internal references
- */
-export const resolveInternalRefs = (schema, definitions) => {
-  if (!schema || typeof schema !== 'object') return schema;
-
-  // Handle arrays
-  if (Array.isArray(schema)) {
-    return schema.map(item => resolveInternalRefs(item, definitions));
-  }
-
-  // Deep clone to avoid modifying original
-  const resolved = { ...schema };
-
-  // If this is a reference, resolve it
-  if (resolved.$ref && typeof resolved.$ref === 'string' && resolved.$ref.startsWith('#/definitions/')) {
-    const definitionKey = resolved.$ref.split('/').pop();
-    const definition = definitions[definitionKey];
-    
-    if (!definition) {
-      console.warn(`Definition not found for ref: ${resolved.$ref}`);
-      return resolved;
-    }
-
-    // Merge the definition with any additional properties
-    const { $ref, ...rest } = resolved;
-    return {
-      ...resolveInternalRefs(definition, definitions),
-      ...rest
-    };
-  }
-
-  // Recursively process all properties
-  Object.entries(resolved).forEach(([key, value]) => {
-    resolved[key] = resolveInternalRefs(value, definitions);
-  });
-
-  return resolved;
-};
-
 
 /**
  * Resolves a JSON Schema reference
@@ -206,8 +158,6 @@ export const resolveInternalRefs = (schema, definitions) => {
 // schemaUtils.js
 
 export const resolveReference = async (ref, context) => {
-  console.log('Resolving reference:', ref);
-
   // Check cache first
   if (referenceCache.has(ref)) {
     return referenceCache.get(ref);
@@ -240,14 +190,6 @@ export const resolveReference = async (ref, context) => {
 
       // If definition not found in context, use default definition
       if (!current.definitions || !current.definitions[definitionName]) {
-    // Special handling for color references
-    if (isColorReference(ref)) {
-      console.log('Using color definition for', ref);
-      const colorDef = DEFAULT_DEFINITIONS['color'];
-      referenceCache.set(ref, colorDef);
-      return colorDef;
-    }
-
         if (DEFAULT_DEFINITIONS[definitionName]) {
           console.warn(`Using default definition for ${definitionName}`);
           // Cache and return the default definition
@@ -382,36 +324,19 @@ export const resolveFieldType = (schema) => {
   if (schema.enum) return 'enum';
   if (schema.oneOf && schema.oneOf.every(item => item.const !== undefined)) return 'enum';
   
-  // Enhanced color detection - check references first
-  if (schema.$ref && (schema.$ref.endsWith('/color') || schema.$ref.includes('definitions/color'))) {
-    return 'color';
-  }
-  
-  // Then check other color indicators
-  // Add color pattern detection function
-// Add color pattern detection function
-const isColorPattern = (pattern) => {
-  if (!pattern) return false;
-  
-  // Check if the pattern is intended to match color formats
-  return pattern.includes('#') && 
-         pattern.includes('[0-9a-fA-F]') && 
-         (pattern.includes('6}') || pattern.includes('8}') || pattern.includes('3}'));
-};
-
-
+  // Enhanced color detection
   if (schema.type === 'string' && (
     schema.format === 'color' ||
     schema.title?.toLowerCase().includes('color') ||
     schema.description?.toLowerCase().includes('color') ||
-    isColorPattern(schema.pattern)
+    (schema.pattern && /#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})/.test(schema.pattern))
   )) {
     return 'color';
   }
 
   // Handle type-specific cases
   if (schema.type === 'array') return 'array';
-  if (schema.type === 'object' || schema.properties) return 'object';
+  if (schema.type === 'object') return 'object';
   
   // Handle references
   if (schema.$ref) {
@@ -425,10 +350,6 @@ const isColorPattern = (pattern) => {
  * Recursively resolves schema references and combines schemas
  */
 export const resolveSchema = async (schema, context = schema) => {
-  // Early preprocessing of internal references if definitions are available
-  if (context.definitions) {
-    schema = resolveInternalRefs(schema, context.definitions);
-  }
   if (!schema) return schema;
 
   try {
@@ -490,13 +411,7 @@ export const resolveSchemaRef = async (schema, context) => {
 
     // Resolve the reference
     const resolved = await resolveReference(schema.$ref, context);
-    // Preserve format and title information from original schema
-    const fullyResolved = {
-      ...(await resolveSchema(resolved, context)),
-      format: resolved.format || schema.format,
-      title: resolved.title || schema.title,
-      description: resolved.description || schema.description
-    };
+    const fullyResolved = await resolveSchema(resolved, context);
     
     // Cache the result
     globalReferenceCache.set(cacheKey, fullyResolved);
@@ -510,92 +425,6 @@ export const resolveSchemaRef = async (schema, context) => {
 /**
  * Validates a value against schema
  */
-/**
- * Process complex schema structures with nested wildcards and allOf combinations
- * @param {Object} schema - The schema object to process
- * @returns {Object} Processed schema with merged properties
- */
-// Cache for processed schemas to prevent infinite recursion
-const processedSchemaCache = new WeakMap();
-
-export const processComplexSchema = async (schema, context = schema) => {
-  if (!schema || typeof schema !== 'object') return schema;
-  
-  // Check if we've already processed this schema
-  const cacheKey = schema.$ref || schema;
-  if (processedSchemaCache.has(cacheKey)) {
-    return processedSchemaCache.get(cacheKey);
-  }
-  
-  // First resolve any references
-  let resolvedSchema = schema;
-  if (schema.$ref) {
-    resolvedSchema = await resolveSchemaRef(schema, context);
-  }
-
-  // Create a deep clone to avoid modifying the original schema
-  const processedSchema = JSON.parse(JSON.stringify(resolvedSchema));
-  // Store in cache before deep processing to handle circular references
-  processedSchemaCache.set(cacheKey, processedSchema);
-  
-  // Handle allOf by merging properties
-  if (processedSchema.allOf) {
-    const resolvedAllOf = await Promise.all(
-      processedSchema.allOf.map(subSchema => processComplexSchema(subSchema, context))
-    );
-    
-    const mergedSchema = resolvedAllOf.reduce((acc, curr) => {
-      const merged = {
-        ...acc,
-        ...curr,
-        properties: {
-          ...(acc.properties || {}),
-          ...(curr.properties || {})
-        }
-      };
-
-      // Special handling for wildcards in allOf
-      if (curr.properties?.['*']) {
-        const wildcardProps = curr.properties['*'].properties || {};
-        merged.properties = {
-          ...merged.properties,
-          ...wildcardProps
-        };
-      }
-
-      return merged;
-    }, {});
-    
-    Object.assign(processedSchema, mergedSchema);
-  }
-
-  // Handle nested wildcards in properties
-  if (processedSchema.properties?.['*']?.properties) {
-    const wildcardSchema = processedSchema.properties['*'];
-    const processedWildcard = await processComplexSchema(wildcardSchema, context);
-    
-    if (processedWildcard.properties) {
-      processedSchema.properties = {
-        ...processedSchema.properties,
-        ...processedWildcard.properties
-      };
-    }
-  }
-
-  // Process all properties recursively
-  if (processedSchema.properties) {
-    const processedProperties = {};
-    for (const [key, value] of Object.entries(processedSchema.properties)) {
-      if (key !== '*') { // Skip the wildcard as we've already processed it
-        processedProperties[key] = await processComplexSchema(value, context);
-      }
-    }
-    processedSchema.properties = processedProperties;
-  }
-
-  return processedSchema;
-};
-
 export const validateField = (schema, value) => {
   const errors = [];
 
@@ -616,27 +445,14 @@ export const validateField = (schema, value) => {
       if (typeof value !== 'string') {
         errors.push('Value must be a string');
       } else if (schema.pattern) {
-        if (schema.format === 'color' || resolveFieldType(schema) === 'color') {
-          // For colors, only validate complete values
-          if (value.length === 7 || value.length === 9) {
-            try {
-              const regex = new RegExp(schema.pattern);
-              if (!regex.test(value)) {
-                errors.push('Value does not match required pattern');
-              }
-            } catch (error) {
-              errors.push('Invalid pattern in schema');
-            }
+        try {
+          const regex = new RegExp(schema.pattern);
+          if (!regex.test(value)) {
+            errors.push('Value does not match required pattern');
           }
-        } else {
-          try {
-            const regex = new RegExp(schema.pattern);
-            if (!regex.test(value)) {
-              errors.push('Value does not match required pattern');
-            }
-          } catch (error) {
-            errors.push('Invalid pattern in schema');
-          }
+        } catch (error) {
+          console.error('Invalid regex pattern:', error);
+          errors.push('Invalid pattern in schema');
         }
       }
       break;

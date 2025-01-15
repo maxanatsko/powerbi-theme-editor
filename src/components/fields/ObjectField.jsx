@@ -1,31 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { processComplexSchema } from '../../utils/schemaUtils';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { FieldRenderer } from '../core/FieldRenderer';
 import { getPathDisplayInfo } from '../../utils/pathUtils';
+import { ErrorBoundary } from '../core/ErrorBoundary';
 
 export const ObjectField = ({ path, schema, value = {}, onChange }) => {
-  // Default to collapsed state
   const [isExpanded, setIsExpanded] = useState(false);
   
-  if (!schema.properties) return null;
+  // Process the schema to handle complex structures
+  const [processedSchema, setProcessedSchema] = useState(schema);
+
+  useEffect(() => {
+    let mounted = true;
+    const processSchema = async () => {
+      try {
+        const result = await processComplexSchema(schema);
+        if (mounted) {
+          setProcessedSchema(result);
+        }
+      } catch (error) {
+        console.error('Error processing schema:', error);
+      }
+    };
+    processSchema();
+    return () => {
+      mounted = false;
+    };
+  }, [schema]);
+  
+  if (!processedSchema.properties) return null;
 
   const displayInfo = getPathDisplayInfo(path);
   const { label, tooltip, nestingLevel } = displayInfo;
   const isRoot = nestingLevel === 1;
   
-  // Check if this is the '*' level under a visual style section
   const pathParts = path?.split('.') || [];
   const isStarLevel = pathParts[pathParts.length - 1] === '*';
   const isUnderVisualStyles = pathParts[0] === 'visualStyles';
   
-  // If this is the * level under visual styles, render its children directly
+  // If this is the * level under visual styles, render its properties directly
   if (isStarLevel && isUnderVisualStyles) {
-    if (!schema.properties) return null;
-    
     return (
       <div className="space-y-4">
-        {Object.entries(schema.properties).map(([key, fieldSchema]) => {
-          // Replace the * in the path with the actual property name
+        {Object.entries(processedSchema.properties).map(([key, fieldSchema]) => {
           const actualPath = path.replace('.*', `.${key}`);
           return (
             <FieldRenderer
@@ -37,7 +55,7 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
                 const updatedValue = { ...value, [key]: newValue };
                 onChange(path, updatedValue);
               }}
-              required={schema.required?.includes(key)}
+              required={processedSchema.required?.includes(key)}
             />
           );
         })}
@@ -69,7 +87,7 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
       
       {isExpanded && (
         <div className="p-4 bg-white rounded-b-lg border-t">
-          {Object.entries(schema.properties).map(([key, fieldSchema]) => {
+          {Object.entries(processedSchema.properties).map(([key, fieldSchema]) => {
             const fieldPath = path ? `${path}.${key}` : key;
             return (
               <FieldRenderer

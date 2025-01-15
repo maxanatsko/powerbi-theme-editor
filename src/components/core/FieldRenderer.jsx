@@ -22,6 +22,8 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
   const cacheKey = schema.$ref || JSON.stringify(schema);
 
   useEffect(() => {
+    console.log('Raw schema for:', path, schema);
+
     const resolveSchema = async () => {
       if (!schema.$ref) {
         setResolvedSchema(schema);
@@ -42,6 +44,7 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
           schema: resolved,
           timestamp: Date.now()
         });
+        console.log('Resolved schema for:', path, resolved);
         setResolvedSchema(resolved);
         setError(null);
       } catch (err) {
@@ -57,7 +60,22 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
 
   // Enhanced field type resolution with union type support
   const fieldType = useMemo(() => {
+    if (resolvedSchema?.pattern?.includes('#')) {
+      console.log('Found potential color pattern:', resolvedSchema.pattern);
+      console.log('Schema type:', resolvedSchema.type);
+      console.log('Full schema:', resolvedSchema);
+    }
+    console.log('Field schema for', path, ':', resolvedSchema);
+
+    console.log('Determining field type for:', path, resolvedSchema);
+
     if (!resolvedSchema) return null;
+
+    // First handle special cases (including color pattern detection)
+    if (resolvedSchema?.type === 'string' && resolvedSchema?.pattern?.includes('#')) {
+      console.log('Found color pattern field:', path);
+      return 'color';
+    }
 
     if (resolvedSchema.anyOf) {
       const isIconField = resolvedSchema.anyOf.some(type => 
@@ -82,6 +100,12 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
     }
 
     // Handle special cases first
+    // Check for direct color references
+    if (resolvedSchema.$ref && resolvedSchema.$ref.endsWith('/color')) {
+      console.log('Detected color reference:', resolvedSchema.$ref);
+      return 'color';
+    }
+
     if (resolvedSchema.enum) return 'enum';
     if (resolvedSchema.oneOf?.every(item => item.const !== undefined)) return 'enum';
     
@@ -95,7 +119,9 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
       return 'color';
     }
 
-    return resolveFieldType(resolvedSchema);
+    const detectedType = resolveFieldType(resolvedSchema);
+    console.log('Detected field type for', path, ':', detectedType);
+    return detectedType;
   }, [resolvedSchema]);
 
   if (isLoading) {

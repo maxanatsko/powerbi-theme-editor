@@ -17,6 +17,20 @@ const App = () => {
   const [themeData, setThemeData] = useState({});
   const [searchResults, setSearchResults] = useState([]);
 
+  // Add export handler here
+  const handleExport = () => {
+    const jsonString = JSON.stringify(themeData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'theme.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     if (schema) {
       console.log('Schema Debug Info:', {
@@ -303,7 +317,7 @@ const App = () => {
             </button>
             <button
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
-              onClick={() => {/* existing export logic */ }}
+              onClick={handleExport}
             >
               <Download className="w-4 h-4 mr-2 inline" />
               Export

@@ -40,19 +40,33 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
   };
 
   return (
-    <div className="space-y-4 p-4 bg-white rounded-lg border">
+    <div className="space-y-4 p-4 rounded-lg border
+      bg-theme-light-bg-surface dark:bg-theme-dark-bg-surface
+      border-theme-light-border-default dark:border-theme-dark-border-default">
       <div className="flex items-center gap-4">
         <input
           type="text"
           value={newIconName}
           onChange={(e) => setNewIconName(e.target.value)}
           placeholder="New icon name"
-          className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-3 py-2 rounded-lg transition-colors duration-200
+            bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+            text-theme-light-text-primary dark:text-theme-dark-text-primary
+            border border-theme-light-border-default dark:border-theme-dark-border-default
+            focus:outline-none focus:ring-2
+            focus:ring-theme-light-border-focus dark:focus:ring-theme-dark-border-focus
+            focus:border-theme-light-border-focus dark:focus:border-theme-dark-border-focus
+            placeholder-theme-light-text-placeholder dark:placeholder-theme-dark-text-placeholder"
         />
         <button
           onClick={handleAddIcon}
           disabled={!newIconName.trim()}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-4 py-2 rounded-lg transition-colors duration-200
+            bg-theme-light-accent-primary dark:bg-theme-dark-accent-primary
+            text-white
+            hover:bg-theme-light-accent-hover dark:hover:bg-theme-dark-accent-hover
+            disabled:opacity-50 disabled:cursor-not-allowed
+            flex items-center gap-2"
         >
           <PlusCircle className="w-4 h-4" />
           Add Icon
@@ -61,15 +75,19 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
 
       <div className="space-y-4">
         {Object.entries(value).map(([iconName, iconData]) => (
-          <div key={iconName} className="border rounded-lg p-4 space-y-3">
+          <div key={iconName} className="border rounded-lg p-4 space-y-3
+            border-theme-light-border-default dark:border-theme-dark-border-default
+            bg-theme-light-bg-base dark:bg-theme-dark-bg-base">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Image className="w-4 h-4 text-gray-500" />
-                <span className="font-medium text-gray-700">{iconName}</span>
+                <Image className="w-4 h-4 text-theme-light-text-secondary dark:text-theme-dark-text-secondary" />
+                <span className="font-medium text-theme-light-text-primary dark:text-theme-dark-text-primary">{iconName}</span>
               </div>
               <button
                 onClick={() => handleRemoveIcon(iconName)}
-                className="text-red-500 hover:text-red-600"
+                className="text-theme-light-state-error hover:text-theme-light-state-error/80
+                  dark:text-theme-dark-state-error dark:hover:text-theme-dark-state-error/80
+                  transition-colors duration-200"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -77,7 +95,8 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium mb-1
+                  text-theme-light-text-primary dark:text-theme-dark-text-primary">
                   SVG URL
                 </label>
                 <div className="flex items-center gap-2">
@@ -85,7 +104,14 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
                     type="text"
                     value={iconData.url || ''}
                     onChange={(e) => handleIconChange(iconName, 'url', e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 rounded-lg transition-colors duration-200
+                      bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+                      text-theme-light-text-primary dark:text-theme-dark-text-primary
+                      border border-theme-light-border-default dark:border-theme-dark-border-default
+                      focus:outline-none focus:ring-2
+                      focus:ring-theme-light-border-focus dark:focus:ring-theme-dark-border-focus
+                      focus:border-theme-light-border-focus dark:focus:border-theme-dark-border-focus
+                      placeholder-theme-light-text-placeholder dark:placeholder-theme-dark-text-placeholder"
                     placeholder="data:image/svg+xml;utf8,<svg...>"
                   />
                   {iconData.url && !validateSvgUrl(iconData.url) && (
@@ -97,24 +123,35 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium mb-1
+                  text-theme-light-text-primary dark:text-theme-dark-text-primary">
                   Description
                 </label>
                 <input
                   type="text"
                   value={iconData.description || ''}
                   onChange={(e) => handleIconChange(iconName, 'description', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-lg transition-colors duration-200
+                    bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+                    text-theme-light-text-primary dark:text-theme-dark-text-primary
+                    border border-theme-light-border-default dark:border-theme-dark-border-default
+                    focus:outline-none focus:ring-2
+                    focus:ring-theme-light-border-focus dark:focus:ring-theme-dark-border-focus
+                    focus:border-theme-light-border-focus dark:focus:border-theme-dark-border-focus
+                    placeholder-theme-light-text-placeholder dark:placeholder-theme-dark-text-placeholder"
                   placeholder="Icon description..."
                 />
               </div>
 
               {iconData.url && validateSvgUrl(iconData.url) && (
                 <div className="mt-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium mb-1
+                    text-theme-light-text-primary dark:text-theme-dark-text-primary">
                     Preview
                   </label>
-                  <div className="border rounded-lg p-4 bg-gray-50 flex items-center justify-center">
+                  <div className="border rounded-lg p-4 flex items-center justify-center
+                    bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+                    border-theme-light-border-default dark:border-theme-dark-border-default">
                     <div 
                       className="w-8 h-8"
                       dangerouslySetInnerHTML={{ __html: iconData.url.replace('data:image/svg+xml;utf8,', '') }}
@@ -127,7 +164,8 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
         ))}
 
         {Object.keys(value).length === 0 && (
-          <div className="text-center py-8 text-gray-500 flex flex-col items-center gap-2">
+          <div className="text-center py-8 flex flex-col items-center gap-2
+            text-theme-light-text-secondary dark:text-theme-dark-text-secondary">
             <FileCode className="w-6 h-6" />
             <p>No icons added yet. Add your first icon above.</p>
           </div>

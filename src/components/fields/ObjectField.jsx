@@ -65,19 +65,24 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
 
   // Regular object field rendering with collapsible sections
   return (
-    <div className="w-full border rounded-lg bg-gray-50 mb-4">
+    <div className="w-full border rounded-lg mb-4
+      bg-theme-light-bg-surface dark:bg-theme-dark-bg-surface
+      border-theme-light-border-default dark:border-theme-dark-border-default">
       <div 
-        className={`flex items-center cursor-pointer hover:bg-gray-100 rounded-lg ${isExpanded ? 'rounded-b-none' : ''}`}
+        className={`flex items-center cursor-pointer rounded-lg transition-colors duration-200
+          hover:bg-theme-light-bg-hover dark:hover:bg-theme-dark-bg-hover
+          ${isExpanded ? 'rounded-b-none' : ''}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className={`flex items-center w-full p-3 ${nestingLevel > 1 ? 'pl-6' : ''}`}>
           {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <ChevronDown className="w-4 h-4 text-theme-light-text-secondary dark:text-theme-dark-text-secondary flex-shrink-0" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <ChevronRight className="w-4 h-4 text-theme-light-text-secondary dark:text-theme-dark-text-secondary flex-shrink-0" />
           )}
           <span 
-            className={`ml-2 ${isRoot ? 'font-semibold' : 'font-medium'} text-gray-700`}
+            className={`ml-2 ${isRoot ? 'font-semibold' : 'font-medium'}
+              text-theme-light-text-primary dark:text-theme-dark-text-primary`}
             title={tooltip || undefined}
           >
             {label}
@@ -86,7 +91,9 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
       </div>
       
       {isExpanded && (
-        <div className="p-4 bg-white rounded-b-lg border-t">
+        <div className="p-4 rounded-b-lg border-t
+          bg-theme-light-bg-base dark:bg-theme-dark-bg-base
+          border-theme-light-border-default dark:border-theme-dark-border-default">
           {Object.entries(processedSchema.properties).map(([key, fieldSchema]) => {
             const fieldPath = path ? `${path}.${key}` : key;
             return (

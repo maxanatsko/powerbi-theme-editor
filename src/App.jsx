@@ -216,20 +216,23 @@ const App = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="text-lg">Loading schema...</div>
+      <div className="h-screen w-screen flex items-center justify-center bg-theme-light-bg-base dark:bg-theme-dark-bg-base">
+        <div className="text-lg text-theme-light-text-primary dark:text-theme-dark-text-primary">Loading schema...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="text-red-600">
+      <div className="h-screen w-screen flex items-center justify-center bg-theme-light-bg-base dark:bg-theme-dark-bg-base">
+        <div className="text-theme-light-state-error dark:text-theme-dark-state-error">
           Error: {error}
           <button
             onClick={() => window.location.reload()}
-            className="ml-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
+            className="ml-4 px-4 py-2 rounded transition-colors duration-200
+              bg-theme-light-accent-primary dark:bg-theme-dark-accent-primary
+              text-white
+              hover:bg-theme-light-accent-hover dark:hover:bg-theme-dark-accent-hover"
           >
             Retry
           </button>
@@ -239,16 +242,16 @@ const App = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen w-screen">
-      <header className="flex-none bg-white shadow w-full">
+    <div className="flex flex-col h-screen w-screen bg-theme-light-bg-base dark:bg-theme-dark-bg-base">
+      <header className="flex-none shadow w-full bg-theme-light-bg-surface dark:bg-theme-dark-bg-surface border-b border-theme-light-border-default dark:border-theme-dark-border-default">
   <div className="flex items-center justify-between w-full px-6 py-4">
     <div className="flex flex-col">
-      <h1 className="text-2xl font-bold text-gray-900">
+      <h1 className="text-2xl font-bold text-theme-light-text-primary dark:text-theme-dark-text-primary">
         Power BI Theme Editor
       </h1>
       {schemaVersion && (
-        <div className="text-sm text-gray-600 mt-1">
-          Schema Version: <span className="font-medium text-blue-800">v{schemaVersion}</span>
+        <div className="text-sm text-theme-light-text-secondary dark:text-theme-dark-text-secondary mt-1">
+          Schema Version: <span className="font-medium text-theme-light-accent-primary dark:text-theme-dark-accent-primary">v{schemaVersion}</span>
         </div>
       )}
     </div>
@@ -302,21 +305,30 @@ const App = () => {
               accept=".json"
             />
             <button
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
+              className="px-4 py-2 rounded transition-colors duration-200
+                bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+                text-theme-light-text-primary dark:text-theme-dark-text-primary
+                hover:bg-theme-light-bg-hover dark:hover:bg-theme-dark-bg-hover"
               onClick={() => setShowJson(!showJson)}
             >
               <Code className="w-4 h-4 mr-2 inline" />
               View JSON
             </button>
             <button
-              className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+              className="px-4 py-2 rounded transition-colors duration-200
+                bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+                text-theme-light-text-primary dark:text-theme-dark-text-primary
+                hover:bg-theme-light-bg-hover dark:hover:bg-theme-dark-bg-hover"
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-2 inline" />
               Import
             </button>
             <button
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
+              className="px-4 py-2 rounded transition-colors duration-200
+                bg-theme-light-accent-primary dark:bg-theme-dark-accent-primary
+                text-white
+                hover:bg-theme-light-accent-hover dark:hover:bg-theme-dark-accent-hover"
               onClick={handleExport}
             >
               <Download className="w-4 h-4 mr-2 inline" />
@@ -325,9 +337,9 @@ const App = () => {
           </div>
         </div>
       </header>
-      <main className="flex-grow overflow-hidden w-full">
+      <main className="flex-grow overflow-hidden w-full bg-theme-light-bg-base dark:bg-theme-dark-bg-base">
         <TreeLayout>
-          <div className={`flex gap-6 transition-all duration-200 ease-in-out ${showJson ? 'w-full' : 'max-w-3xl mx-auto'}`}>
+          <div className={`flex gap-6 transition-all duration-200 ease-in-out bg-theme-light-bg-base dark:bg-theme-dark-bg-base ${showJson ? 'w-full' : 'max-w-3xl mx-auto'}`}>
             <div className="flex-[6]">
               <ThemeForm
                 ref={themeFormRef}
@@ -336,10 +348,13 @@ const App = () => {
               />
             </div>
             {showJson && (
-              <div className="flex-[4] border-l border-gray-200 pl-6">
-                <div className="sticky top-0 pt-4">
-                  <h2 className="text-lg font-semibold mb-4">JSON</h2>
-                  <pre className="bg-white p-4 rounded border text-sm font-mono whitespace-pre-wrap overflow-auto max-h-[calc(100vh-12rem)]">
+              <div className="flex-[4] border-l pl-6 border-theme-light-border-default dark:border-theme-dark-border-default">
+              <div className="sticky top-0 pt-4">
+              <h2 className="text-lg font-semibold mb-4 text-theme-light-text-primary dark:text-theme-dark-text-primary">JSON</h2>
+              <pre className="p-4 rounded border text-sm font-mono whitespace-pre-wrap overflow-auto max-h-[calc(100vh-12rem)]
+                  bg-theme-light-bg-surface dark:bg-theme-dark-bg-surface
+                  text-theme-light-text-primary dark:text-theme-dark-text-primary
+                  border-theme-light-border-default dark:border-theme-dark-border-default">
                     {JSON.stringify(themeData || {}, null, 2)}
                   </pre>
                 </div>

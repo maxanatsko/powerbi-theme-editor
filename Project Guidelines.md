@@ -1,4 +1,81 @@
-# PowerBI Theme Editor - Project Development Instructions
+# UI Component Guidelines
+
+## Color Theme Structure
+
+### Light/Dark Mode Implementation
+The application uses a structured theme system in tailwind.config.js with light and dark variants:
+
+```javascript
+theme: {
+  colors: {
+    theme: {
+      light: {
+        bg: {              // Background colors
+          base: '#ffffff',   // Root background
+          surface: '#f9f9f9', // Card/Section background
+          input: '#f3f4f6',  // Input fields
+          hover: '#f3f4f6'   // Hover states
+        },
+        text: {             // Typography colors
+          primary: '#213547',
+          secondary: '#666666',
+          muted: '#8a8a8a',
+          input: '#213547',
+          placeholder: '#a1a1aa'
+        },
+        border: {...},      // Border colors
+        accent: {...}       // Action colors
+      },
+      dark: {
+        bg: {
+          base: '#252423',    // Root background
+          surface: '#323130',  // Card/Section background
+          input: '#484644',    // Input fields
+          hover: '#605E5C'     // Hover states
+        },
+        text: {...},
+        border: {...},
+        accent: {
+          primary: '#2B88D8',  // PowerBI blue
+          hover: '#4AA4EF'
+        },
+        state: {
+          error: '#FF4444',    // High contrast states
+          warning: '#FFC107',
+          success: '#4CAF50'
+        }
+      }
+    }
+  }
+}
+```
+
+### Color Usage Guidelines
+1. **Backgrounds**
+   - Use bg-theme-light-bg-base/dark-bg-base for root level
+   - Use bg-theme-light-bg-surface/dark-bg-surface for cards
+   - Use bg-theme-light-bg-input/dark-bg-input for form inputs
+
+2. **Text**
+   - Use text-theme-light-text-primary/dark-text-primary for main text
+   - Use text-theme-light-text-secondary/dark-text-secondary for descriptions
+   - Use text-theme-light-text-muted/dark-text-muted for less emphasis
+
+3. **Actions**
+   - Use accent-primary for main actions (PowerBI blue)
+   - Use state colors for feedback (error, warning, success)
+
+4. **Borders**
+   - Use border-theme-light-border-default/dark-border-default for separators
+   - Add hover:border-theme-light-border-hover/dark-border-hover for interaction
+
+### Accessibility Guidelines
+- Maintain WCAG AA contrast ratios in both modes
+- Test all interactive elements in both modes
+- Ensure proper focus states for keyboard navigation
+- Provide clear visual feedback for all interactions
+
+
 
 ## Project File Structure
 ```

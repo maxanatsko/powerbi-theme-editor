@@ -135,14 +135,17 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
   if (isLoading) {
     return (
       <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-full"></div>
+        <div className="h-8 bg-theme-light-bg-input dark:bg-theme-dark-bg-input rounded w-full"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 border border-red-300 rounded bg-red-50 text-red-700">
+      <div className="p-4 border rounded
+        bg-theme-light-state-error-bg dark:bg-theme-dark-state-error-bg
+        border-theme-light-state-error dark:border-theme-dark-state-error
+        text-theme-light-state-error dark:text-theme-dark-state-error">
         <p className="font-medium">Error rendering field</p>
         <p className="text-sm">{error}</p>
         {schema.$ref && (
@@ -192,7 +195,10 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
         // Fallback to string field for unknown types
         return (
           <div className="space-y-2">
-            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
+            <div className="p-2 rounded
+              bg-theme-light-state-warning-bg dark:bg-theme-dark-state-warning-bg
+              border border-theme-light-state-warning dark:border-theme-dark-state-warning
+              text-theme-light-state-warning dark:text-theme-dark-state-warning text-sm">
               Using fallback string field for type: {fieldType}
             </div>
             <StringField {...fieldProps} />
@@ -202,7 +208,10 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
   } catch (err) {
     console.error('Error rendering field:', err);
     return (
-      <div className="p-4 border border-red-300 rounded bg-red-50 text-red-700">
+      <div className="p-4 rounded
+        bg-theme-light-state-error-bg dark:bg-theme-dark-state-error-bg
+        border border-theme-light-state-error dark:border-theme-dark-state-error
+        text-theme-light-state-error dark:text-theme-dark-state-error">
         <p className="font-medium">Error rendering field</p>
         <p className="text-sm">{err.message}</p>
       </div>

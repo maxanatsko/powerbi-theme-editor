@@ -128,14 +128,16 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
   const schemaToUse = resolvedItemSchema || schema.items;
 
   return (
-    <div className="my-4 border rounded-lg bg-gray-50">
+    <div className="my-4 border rounded-lg
+      bg-theme-light-bg-surface dark:bg-theme-dark-bg-surface
+      border-theme-light-border-default dark:border-theme-dark-border-default">
       <div className="p-3 flex justify-between items-start gap-4">
   <div className="flex-1">
-    <span className="font-medium text-gray-700">
+    <span className="font-medium text-theme-light-text-primary dark:text-theme-dark-text-primary">
       {schema.title || path.split('.').pop()}
     </span>
     {schema.description && (
-      <p className="text-sm text-gray-500 mt-1 max-w-1xl">
+      <p className="text-sm text-theme-light-text-secondary dark:text-theme-dark-text-secondary mt-1 max-w-1xl">
         {schema.description}
       </p>
     )}
@@ -143,25 +145,33 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
   <button
   type="button"
   onClick={handleAdd}
-  className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-800 flex items-center gap-2"
+  className="px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors duration-200
+    bg-theme-light-accent-primary dark:bg-theme-dark-accent-primary
+    text-white
+    hover:bg-theme-light-accent-hover dark:hover:bg-theme-dark-accent-hover
+    disabled:opacity-50 disabled:cursor-not-allowed
+    focus:ring-2 focus:ring-theme-light-border-focus dark:focus:ring-theme-dark-border-focus
+    focus:outline-none"
   disabled={isResolving || !schemaToUse}
 >
   <PlusCircle className="w-4 h-4" />
   Add Item
 </button>
 </div>
-      <div className="bg-white border-t">
+      <div className="bg-theme-light-bg-base dark:bg-theme-dark-bg-base border-t border-theme-light-border-default dark:border-theme-dark-border-default">
         {normalizedValue.map((item, index) => (
           <ErrorBoundary key={`${path}[${index}]`}>
-            <div className="p-4 border-b last:border-b-0">
+            <div className="p-4 border-b last:border-b-0 border-theme-light-border-default dark:border-theme-dark-border-default">
               <div className="flex justify-between items-start mb-2">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-theme-light-text-secondary dark:text-theme-dark-text-secondary">
                   {schemaToUse?.title || `Item ${index + 1}`}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleRemove(index)}
-                  className="text-red-500 hover:text-red-600"
+                  className="text-theme-light-state-error hover:text-theme-light-state-error/90
+                    dark:text-[#FF6B6B] dark:hover:text-[#FF6B6B]/90
+                    transition-colors duration-200"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -177,13 +187,16 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
           </ErrorBoundary>
         ))}
         {normalizedValue.length === 0 && (
-          <div className="p-4 text-center text-gray-500 text-sm">
+          <div className="p-4 text-center text-theme-light-text-muted dark:text-theme-dark-text-muted text-sm">
             No items added
           </div>
         )}
       </div>
       {error && (
-        <div className="p-2 text-sm text-red-600 border-t">
+        <div className="p-2 text-sm border-t
+          border-theme-light-state-error dark:border-theme-dark-state-error
+          bg-theme-light-state-error-bg dark:bg-theme-dark-state-error-bg
+          text-theme-light-state-error dark:text-theme-dark-state-error">
           {error}
         </div>
       )}

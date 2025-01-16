@@ -77,12 +77,20 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
       return 'color';
     }
 
+    // Handle icon field detection
     if (resolvedSchema.anyOf) {
-      const isIconField = resolvedSchema.anyOf.some(type => 
-        type.type === 'object' && 
-        type.patternProperties && 
-        type.patternProperties['.*']?.$ref?.includes('themeIcon')
-      );
+      console.log('Checking for icon field:', path);
+      const isIconField = resolvedSchema.anyOf.some(type => {
+        const hasIconPattern = type.type === 'object' && 
+          type.patternProperties && 
+          (type.patternProperties['.*'] || type.patternProperties['.+']);
+        
+        if (hasIconPattern) {
+          console.log('Found icon pattern for:', path);
+          return true;
+        }
+        return false;
+      });
       if (isIconField) return 'icon';
     }
 

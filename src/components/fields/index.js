@@ -5,6 +5,7 @@ import { ColorField } from './ColorField';
 import { EnumField } from './EnumField';
 import { ObjectField } from './ObjectField';
 import { ArrayField } from './ArrayField';
+import { IconField } from './iconField';
 
 export const fieldComponents = {
   string: StringField,
@@ -14,5 +15,6 @@ export const fieldComponents = {
   array: ArrayField,
   object: ObjectField,
   enum: EnumField,
-  color: ColorField
+  color: ColorField,
+  icon: IconField
 };

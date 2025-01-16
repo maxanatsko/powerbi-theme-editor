@@ -1,4 +1,4 @@
-# UI Component Guidelines
+# Power BI Theme Editor - Technical Architecture & Guidelines
 
 ## Color Theme Structure
 
@@ -376,6 +376,7 @@ FieldRenderer.determineFieldType(schema)
   -> Validate patternProperties
   -> Return 'icon' type if matched
   -> Render IconField component
+```
 
 ## File Dependencies
 

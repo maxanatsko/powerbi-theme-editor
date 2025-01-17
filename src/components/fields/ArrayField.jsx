@@ -3,6 +3,7 @@ import { PlusCircle, Trash2 } from 'lucide-react';
 import { FieldRenderer } from '../core/FieldRenderer';
 import { resolveSchemaRef, createDefaultValue } from '../../utils/schemaUtils';
 import { ErrorBoundary } from '../core/ErrorBoundary';
+import { getPathDisplayInfo } from '../../utils/pathUtils';
 
 // Enhanced schema cache with TTL
 const itemSchemaCache = new Map();
@@ -134,7 +135,7 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
       <div className="p-3 flex justify-between items-start gap-4">
   <div className="flex-1">
     <span className="font-medium text-theme-light-text-primary dark:text-theme-dark-text-primary">
-      {schema.title || path.split('.').pop()}
+      {schema.title || getPathDisplayInfo(path).label}
     </span>
     {schema.description && (
       <p className="text-sm text-theme-light-text-secondary dark:text-theme-dark-text-secondary mt-1 max-w-1xl">

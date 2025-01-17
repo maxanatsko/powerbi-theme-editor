@@ -339,7 +339,7 @@ const App = () => {
       </header>
       <main className="flex-grow overflow-hidden w-full bg-theme-light-bg-base dark:bg-theme-dark-bg-base">
         <TreeLayout>
-          <div className={`flex gap-6 transition-all duration-200 ease-in-out bg-theme-light-bg-base dark:bg-theme-dark-bg-base ${showJson ? 'w-full' : 'max-w-3xl mx-auto'}`}>
+          <div className={`flex gap-6 p-4 transition-all duration-200 ease-in-out bg-theme-light-bg-base dark:bg-theme-dark-bg-base ${showJson ? 'w-full' : 'max-w-4xl mx-auto'}`}>
             <div className="flex-[6]">
               <ThemeForm
                 ref={themeFormRef}

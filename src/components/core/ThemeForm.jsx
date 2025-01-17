@@ -163,7 +163,7 @@ export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref
 
   // First render all non-color fields, then add Base Colors section at the end
   return (
-    <div className="w-full h-full overflow-auto space-y-4 pb-8
+    <div className="w-full h-full overflow-auto space-y-4 pb-8 px-6
      bg-theme-light-bg-base dark:bg-theme-dark-bg-base
      text-theme-light-text-primary dark:text-theme-dark-text-primary">
       {renderNonColorFields()}

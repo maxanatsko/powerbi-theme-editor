@@ -1,5 +1,7 @@
 const MAX_RESOLUTION_ATTEMPTS = 3;
 
+import { colorGroups, groupOrder } from './colorGroups';
+
 const DEFAULT_DEFINITIONS = {
   color: {
     type: 'string',
@@ -734,6 +736,55 @@ export const resolveEnumOptions = (schema) => {
  * @param {string} path - The current path in the schema
  * @returns {Object} Processed schema structure
  */
+// Color group handling functions
+export const isColorField = (fieldName, path = '') => {
+  // Only check top-level fields (those without dots in path)
+  if (path.includes('.')) return false;
+  return Object.values(colorGroups).some(group => group.includes(fieldName));
+};
+
+export const getColorGroup = (fieldName, path = '') => {
+  // Only group top-level fields
+  if (path.includes('.')) return null;
+  return Object.entries(colorGroups).find(([_, fields]) => 
+    fields.includes(fieldName)
+  )?.[0] || null;
+};
+
+export const isColorGroupParent = (schema, path) => {
+  if (!schema?.properties) return false;
+  if (path.includes('.')) return false;
+  const properties = Object.keys(schema.properties);
+  return properties.some(prop => isColorField(prop));
+};
+
+export const getColorGroups = (schema, path = '') => {
+  if (!schema?.properties) {
+    console.log('getColorGroups: No schema properties');
+    return null;
+  }
+  
+  // Only process top-level properties
+  if (path.includes('.')) {
+    console.log('getColorGroups: Skipping non-top-level path:', path);
+    return null;
+  }
+  
+  console.log('getColorGroups: Processing properties:', Object.keys(schema.properties));
+   // Group properties by their color group
+  const grouped = Object.entries(schema.properties).reduce((acc, [key, value]) => {
+    const group = getColorGroup(key, path);
+    if (group) {
+      if (!acc[group]) acc[group] = {};
+      acc[group][key] = value;
+    }
+    return acc;
+  }, {});
+
+  // Only return if we found any color groups
+  return Object.keys(grouped).length > 0 ? grouped : null;
+};
+
 export const traverseSchema = (schema, path = '') => {
   if (!schema) return null;
 

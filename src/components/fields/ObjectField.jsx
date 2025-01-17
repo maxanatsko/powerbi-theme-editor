@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { processComplexSchema } from '../../utils/schemaUtils';
+import { processComplexSchema, isColorGroupParent, getColorGroups, getColorGroup } from '../../utils/schemaUtils';
+import { groupOrder } from '../../utils/colorGroups';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { FieldRenderer } from '../core/FieldRenderer';
 import { getPathDisplayInfo } from '../../utils/pathUtils';
@@ -10,6 +11,21 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
   
   // Process the schema to handle complex structures
   const [processedSchema, setProcessedSchema] = useState(schema);
+  
+  // Check if this object contains color groups and debug
+  const colorGroups = useMemo(() => {
+    if (!processedSchema?.properties) return null;
+    const groups = getColorGroups(processedSchema, path);
+    console.log('Path:', path);
+    console.log('Schema properties:', Object.keys(processedSchema.properties));
+    console.log('Detected color groups:', groups);
+    return groups;
+  }, [processedSchema, path]);
+
+  // Determine if this is a color group container
+  const isColorContainer = useMemo(() => {
+    return isColorGroupParent(processedSchema, path);
+  }, [processedSchema, path]);
 
   useEffect(() => {
     let mounted = true;
@@ -38,6 +54,47 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
   const pathParts = path?.split('.') || [];
   const isStarLevel = pathParts[pathParts.length - 1] === '*';
   const isUnderVisualStyles = pathParts[0] === 'visualStyles';
+  
+  // Special handling for color groups
+  const renderColorGroups = () => {
+    if (!colorGroups) return null;
+    
+    // Render groups in specified order
+    return (
+      <div className="mb-6 p-4 bg-theme-light-bg-surface dark:bg-theme-dark-bg-surface rounded-lg border border-theme-light-border-default dark:border-theme-dark-border-default">
+        <h2 className="text-lg font-semibold mb-4 text-theme-light-text-primary dark:text-theme-dark-text-primary">
+          Base Colors
+        </h2>
+        {groupOrder
+      .filter(groupName => colorGroups[groupName])
+      .map(groupName => (
+        <div key={groupName} className="mb-6">
+          <h3 className="text-sm font-semibold mb-3 text-theme-light-text-primary dark:text-theme-dark-text-primary">
+            {groupName}
+          </h3>
+          <div className="grid grid-cols-1 gap-4 pl-4">
+            {Object.entries(colorGroups[groupName]).map(([key, fieldSchema]) => {
+              const fieldPath = path ? `${path}.${key}` : key;
+              return (
+                <FieldRenderer
+                  key={key}
+                  path={fieldPath}
+                  schema={fieldSchema}
+                  value={value[key]}
+                  onChange={(_, newValue) => {
+                    const updatedValue = { ...value, [key]: newValue };
+                    onChange(path, updatedValue);
+                  }}
+                  required={processedSchema.required?.includes(key)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      </div>
+    );
+  };
   
   // If this is the * level under visual styles, render its properties directly
   if (isStarLevel && isUnderVisualStyles) {
@@ -94,7 +151,13 @@ export const ObjectField = ({ path, schema, value = {}, onChange }) => {
         <div className="p-4 rounded-b-lg border-t
           bg-theme-light-bg-base dark:bg-theme-dark-bg-base
           border-theme-light-border-default dark:border-theme-dark-border-default">
-          {Object.entries(processedSchema.properties).map(([key, fieldSchema]) => {
+          {/* Render color groups if present */}
+          {colorGroups && renderColorGroups()}
+          
+          {/* Render non-grouped properties */}
+          {Object.entries(processedSchema.properties)
+            .filter(([key]) => !colorGroups || !Object.values(colorGroups).some(group => key in group))
+            .map(([key, fieldSchema]) => {
             const fieldPath = path ? `${path}.${key}` : key;
             return (
               <FieldRenderer

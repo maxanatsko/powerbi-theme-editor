@@ -267,6 +267,34 @@ exports {
   resolveSchemaRef: Function(schema, rootSchema) => Object
 }
 ```
+### Color Groups Implementation
+The application uses a structured color grouping system defined in `utils/colorGroups.js`:
+
+#### Color Grouping Rules
+1. **Path-Based Grouping**
+   - Only top-level color properties are grouped
+   - Properties in nested paths are rendered normally
+   - Path checks prevent grouping of similar-named nested properties
+
+2. **Group Detection Chain**
+   ```javascript
+   // Color group detection chain
+   isColorField(fieldName, path)  // Checks if field should be grouped
+   -> getColorGroup(fieldName, path)  // Gets appropriate group
+   -> getColorGroups(schema, path)  // Builds group structure
+   UI Structure
+
+3. **UI Structure**
+- Base Colors section appears after Text Classes
+- Each color group uses collapsible sections
+- Groups are collapsed by default
+- Maintains existing schema structure while providing organized UI
+
+4. **Modification Guidelines**
+- Add new color fields to appropriate groups in colorGroups.js
+- Maintain group order in groupOrder array
+- Ensure path checks for new color implementations
+- Test impact on nested properties
 
 ### Utility Functions
 
@@ -293,6 +321,17 @@ exports {
   processComplexSchema: Function(schema) => Object
 }
 ```
+#### Color Group Utilities
+```javascript
+exports {
+  // Color group detection and processing
+  isColorField: Function(fieldName: string, path: string) => boolean,
+  getColorGroup: Function(fieldName: string, path: string) => string | null,
+  isColorGroupParent: Function(schema: Object, path: string) => boolean,
+  getColorGroups: Function(schema: Object, path: string) => Object | null
+}
+```
+
 
 ## Function Dependencies
 ```mermaid

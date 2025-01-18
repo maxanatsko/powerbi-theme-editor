@@ -4,6 +4,7 @@ import { FieldRenderer } from '../core/FieldRenderer';
 import { resolveSchemaRef, createDefaultValue } from '../../utils/schemaUtils';
 import { ErrorBoundary } from '../core/ErrorBoundary';
 import { getPathDisplayInfo } from '../../utils/pathUtils';
+import { LabelWithTooltip } from '../core/LabelWithTooltip';
 
 // Enhanced schema cache with TTL
 const itemSchemaCache = new Map();
@@ -32,7 +33,6 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
 
       if (resolveAttempts.current >= 3) {
         console.warn(`Max resolution attempts reached for ${path}`);
-        // Use a simplified fallback schema for the items
         const fallbackSchema = {
           type: 'object',
           properties: {}
@@ -77,10 +77,8 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
         resolveAttempts.current++;
         
         if (resolveAttempts.current < 3) {
-          // Retry after a delay
           setTimeout(() => resolveSchema(), 1000 * resolveAttempts.current);
         } else {
-          // Use fallback schema after max attempts
           const fallbackSchema = {
             type: 'object',
             properties: {
@@ -133,32 +131,28 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
       bg-theme-light-bg-surface dark:bg-theme-dark-bg-surface
       border-theme-light-border-default dark:border-theme-dark-border-default">
       <div className="p-3 flex justify-between items-start gap-4">
-  <div className="flex-1">
-    <span className="font-medium text-theme-light-text-primary dark:text-theme-dark-text-primary">
-      {schema.title || getPathDisplayInfo(path).label}
-    </span>
-    {schema.description && (
-      <p className="text-sm text-theme-light-text-secondary dark:text-theme-dark-text-secondary mt-1 max-w-1xl">
-        {schema.description}
-      </p>
-    )}
-  </div>
-  <button
-  type="button"
-  onClick={handleAdd}
-  className="px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors duration-200
-    bg-theme-light-accent-primary dark:bg-theme-dark-accent-primary
-    text-white
-    hover:bg-theme-light-accent-hover dark:hover:bg-theme-dark-accent-hover
-    disabled:opacity-50 disabled:cursor-not-allowed
-    focus:ring-2 focus:ring-theme-light-border-focus dark:focus:ring-theme-dark-border-focus
-    focus:outline-none"
-  disabled={isResolving || !schemaToUse}
->
-  <PlusCircle className="w-4 h-4" />
-  Add Item
-</button>
-</div>
+        <LabelWithTooltip
+          label={schema.title || getPathDisplayInfo(path).label}
+          description={schema.description}
+          className="flex-1"
+        />
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors duration-200
+            bg-theme-light-accent-primary dark:bg-theme-dark-accent-primary
+            text-white
+            hover:bg-theme-light-accent-hover dark:hover:bg-theme-dark-accent-hover
+            disabled:opacity-50 disabled:cursor-not-allowed
+            focus:ring-2 focus:ring-theme-light-border-focus dark:focus:ring-theme-dark-border-focus
+            focus:outline-none"
+          disabled={isResolving || !schemaToUse}
+        >
+          <PlusCircle className="w-4 h-4" />
+          Add Item
+        </button>
+      </div>
+
       <div className="bg-theme-light-bg-base dark:bg-theme-dark-bg-base border-t border-theme-light-border-default dark:border-theme-dark-border-default rounded-b-lg">
         {normalizedValue.map((item, index) => (
           <ErrorBoundary key={`${path}[${index}]`}>

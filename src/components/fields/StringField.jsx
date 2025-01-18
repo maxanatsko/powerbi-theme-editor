@@ -1,19 +1,17 @@
 import React from 'react';
 import { getPathDisplayInfo } from '../../utils/pathUtils';
+import { FormField } from '../core/FormField';
 
 export const StringField = ({ path, schema, value = '', onChange, required }) => {
   const isSchemaField = path === '$schema';
   const { label, tooltip } = getPathDisplayInfo(path);
   
   return (
-    <div className="my-2">
-      <label 
-        className="block text-sm font-medium text-theme-light-text-primary dark:text-theme-dark-text-primary mb-1"
-        title={tooltip}
-      >
-        {schema.title || label}
-        {required && <span className="text-theme-light-state-error dark:text-theme-dark-state-error ml-0.5">*</span>}
-      </label>
+    <FormField
+      label={schema.title || label}
+      description={schema.description}
+      required={required}
+    >
       <input
         type="text"
         value={value}
@@ -32,9 +30,6 @@ export const StringField = ({ path, schema, value = '', onChange, required }) =>
         placeholder={schema.description}
         readOnly={isSchemaField}
       />
-      {schema.description && (
-        <p className="mt-1 text-sm text-theme-light-text-secondary dark:text-theme-dark-text-secondary">{schema.description}</p>
-      )}
-    </div>
+    </FormField>
   );
 };

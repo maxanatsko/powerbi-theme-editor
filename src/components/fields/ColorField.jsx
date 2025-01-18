@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-
 import { getPathDisplayInfo } from '../../utils/pathUtils';
+import { FormField } from '../core/FormField';
 
 export const ColorField = ({ path, schema, value = '#000000', onChange, required }) => {
   const { label } = getPathDisplayInfo(path);
@@ -52,11 +52,11 @@ export const ColorField = ({ path, schema, value = '#000000', onChange, required
   };
 
   return (
-    <div className="my-2">
-      <label className="block text-sm font-medium mb-1 text-theme-light-text-primary dark:text-theme-dark-text-primary">
-        {displayLabel}
-        {required && <span className="text-theme-light-state-error dark:text-theme-dark-state-error ml-0.5">*</span>}
-      </label>
+    <FormField
+      label={displayLabel}
+      description={schema.description}
+      required={required}
+    >
       <div className="flex items-center space-x-2">
         <input
           type="color"
@@ -88,9 +88,6 @@ export const ColorField = ({ path, schema, value = '#000000', onChange, required
       {error && (
         <p className="mt-1 text-sm text-theme-light-state-error dark:text-theme-dark-state-error">{error}</p>
       )}
-      {schema.description && (
-        <p className="mt-1 text-sm text-theme-light-text-secondary dark:text-theme-dark-text-secondary">{schema.description}</p>
-      )}
-    </div>
+    </FormField>
   );
 };

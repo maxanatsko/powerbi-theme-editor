@@ -263,6 +263,63 @@ exports {
 }
 ```
 
+### UI Component Guidelines
+
+#### FormField Component
+```javascript
+exports {
+  FormField: React.Component {
+    props: {
+      label: string,           // Field label
+      description: string,     // Optional description for tooltip
+      tooltip: string,         // Optional tooltip content
+      required: boolean,       // Shows required indicator
+      className: string,       // Optional custom styling
+      children: ReactNode      // Field content
+    }
+  }
+}
+
+Usage Guidelines
+1. Use for input fields that need labels and descriptions
+2. Only passes description/tooltip if actual content exists
+3. Dont use for section headers or structural elements
+
+#### Examples
+```javascript
+  // Field with description
+  <FormField
+    label="Field Name"
+    description="Helpful description here"
+    required={true}
+  >
+    <input ... />
+  </FormField>
+
+  // Simple field without description
+  <FormField
+    label="Field Name"
+  >
+    <input ... />
+  </FormField>
+```
+
+#### Field Layout Guidelines
+Simple Fields
+- Use FormField wrapper
+- Include descriptions when available
+- Follow consistent margin patterns
+
+Complex Fields (Arrays)
+- Use FormField only for the input area
+- Keep layout patterns consistent
+- Don't add tooltips to item headers
+
+Sections (Objects)
+- Don't use tooltips for section headers
+- Maintain clean hierarchical structure
+- Follow consistent spacing patterns
+
 ### Hook Functions
 
 #### useSchemaForm.js

@@ -7,6 +7,7 @@ import { ArrayField } from '../fields/ArrayField';
 import { ColorField } from '../fields/ColorField';
 import { EnumField } from '../fields/EnumField';
 import { IconField } from '../fields/iconField';
+import { TransparencyField } from '../fields/TransparencyField';
 import { resolveFieldType, resolveSchemaRef } from '../../utils/schemaUtils';
 
 // Enhanced schema cache with TTL
@@ -107,8 +108,17 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
       return resolvedSchema.type[0];
     }
 
-    // Handle special cases first
-    // Check for direct color references
+    // Check for transparency fields
+    if (resolvedSchema.type === 'number' && (
+    path.toLowerCase().includes('transparency') ||
+    resolvedSchema.title?.toLowerCase().includes('transparency') ||
+    resolvedSchema.description?.toLowerCase().includes('transparency')
+  )) {
+    return 'transparency';
+  }
+
+  // Handle special cases first
+  // Check for direct color references
     if (resolvedSchema.$ref && resolvedSchema.$ref.endsWith('/color')) {
       console.log('Detected color reference:', resolvedSchema.$ref);
       return 'color';
@@ -189,7 +199,10 @@ export const FieldRenderer = ({ path, schema, value, onChange, required = false 
       case 'enum':
         return <EnumField {...fieldProps} />;
         case 'icon':
-  return <IconField {...fieldProps} />;
+    return <IconField {...fieldProps} />;
+  case 'transparency':
+    return <TransparencyField {...fieldProps} />;
+
       default:
         console.warn(`Unknown field type: ${fieldType}`, resolvedSchema);
         // Fallback to string field for unknown types

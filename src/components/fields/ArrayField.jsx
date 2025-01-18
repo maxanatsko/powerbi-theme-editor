@@ -159,7 +159,7 @@ export const ArrayField = ({ path, schema, value = [], onChange, required }) => 
   Add Item
 </button>
 </div>
-      <div className="bg-theme-light-bg-base dark:bg-theme-dark-bg-base border-t border-theme-light-border-default dark:border-theme-dark-border-default">
+      <div className="bg-theme-light-bg-base dark:bg-theme-dark-bg-base border-t border-theme-light-border-default dark:border-theme-dark-border-default rounded-b-lg">
         {normalizedValue.map((item, index) => (
           <ErrorBoundary key={`${path}[${index}]`}>
             <div className="p-4 border-b last:border-b-0 border-theme-light-border-default dark:border-theme-dark-border-default">

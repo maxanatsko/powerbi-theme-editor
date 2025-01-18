@@ -239,6 +239,29 @@ exports {
     }
   }
 }
+```
+
+#### TransparencyField.jsx
+```javascript
+exports {
+  TransparencyField: React.Component {
+    props: {
+      schema: Object,      // Field schema
+      path: String,        // Field path
+      value: Number,       // Current transparency value (0-100)
+      onChange: Function,  // Change handler
+      required: Boolean    // If field is required
+    }
+    state: {
+      localValue: Number   // For synchronizing slider and number input
+    }
+    methods: {
+      handleSliderChange(event): void,
+      handleNumberChange(event): void
+    }
+  }
+}
+```
 
 ### Hook Functions
 
@@ -408,6 +431,16 @@ SpecificField.validate()
     }
   ]
 }
+```
+
+### 6. Range Input Pattern
+```javascript
+// For range inputs with numerical value sync
+RangeField.handleChange()
+  -> Update local state
+  -> Validate range (min/max)
+  -> Propagate to form state
+  -> Update visual feedback
 
 // Detection flow
 FieldRenderer.determineFieldType(schema)
@@ -488,3 +521,10 @@ Before modifying any file, check its dependencies:
    - Support both `.*` and `.+` pattern properties
    - Require proper field registration in `fields/index.js`
    - Include SVG validation and preview capabilities
+
+2. **Transparency Fields**
+   - Must use type "number" in schema
+   - Detected by field name/title/description containing "transparency"
+   - Support both slider and direct number input
+   - Enforce value range 0-100
+   - Require proper field registration in `fields/index.js`

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Alert, AlertDescription } from './components/ui/alert';
 import { ThemeForm } from './components/core/ThemeForm';
 import TreeLayout from './components/core/TreeLayout';
 import { Download, Upload, Code } from 'lucide-react';
@@ -16,6 +17,66 @@ const App = () => {
   const themeFormRef = useRef(null);
   const [themeData, setThemeData] = useState({});
   const [searchResults, setSearchResults] = useState([]);
+  const [importError, setImportError] = useState(null);
+
+  const handleFileImport = useCallback(async (event) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setImportError(null);
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result;
+          if (!content) {
+            setImportError('Could not read file content');
+            return;
+          }
+
+          const importedData = JSON.parse(content);
+
+          // Basic validation
+          if (typeof importedData !== 'object' || importedData === null) {
+            setImportError('Invalid JSON format: must be an object');
+            return;
+          }
+
+          // Schema validation
+          if (schema && importedData.$schema && importedData.$schema !== schema.$schema) {
+            setImportError('Warning: Imported theme uses a different schema version');
+            // Continue anyway as it might still be compatible
+          }
+
+          // Update form data through reference
+          if (themeFormRef.current) {
+            const currentData = themeFormRef.current.getThemeData();
+            if (JSON.stringify(currentData) !== JSON.stringify(importedData)) {
+              // Only update if data actually changed
+              setThemeData(importedData);
+              themeFormRef.current.resetForm(importedData);
+            }
+          }
+        } catch (err) {
+          console.error('Error processing imported file:', err);
+          setImportError(`Error processing file: ${err.message}`);
+        }
+      };
+
+      reader.onerror = () => {
+        setImportError('Error reading file');
+      };
+
+      reader.readAsText(file);
+    } catch (err) {
+      console.error('Import error:', err);
+      setImportError(`Import error: ${err.message}`);
+    } finally {
+      // Reset the file input
+      event.target.value = '';
+    }
+  }, [schema, themeFormRef]);
 
   // Add export handler here
   const handleExport = () => {
@@ -297,46 +358,61 @@ const App = () => {
       )}
     </div>
     
-    <div className="space-x-4">
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept=".json"
-            />
-            <button
-              className="px-4 py-2 rounded transition-colors duration-200
-                bg-theme-light-bg-input dark:bg-theme-dark-bg-input
-                text-theme-light-text-primary dark:text-theme-dark-text-primary
-                hover:bg-theme-light-bg-hover dark:hover:bg-theme-dark-bg-hover"
-              onClick={() => setShowJson(!showJson)}
-            >
-              <Code className="w-4 h-4 mr-2 inline" />
-              View JSON
-            </button>
-            <button
-              className="px-4 py-2 rounded transition-colors duration-200
-                bg-theme-light-bg-input dark:bg-theme-dark-bg-input
-                text-theme-light-text-primary dark:text-theme-dark-text-primary
-                hover:bg-theme-light-bg-hover dark:hover:bg-theme-dark-bg-hover"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="w-4 h-4 mr-2 inline" />
-              Import
-            </button>
-            <button
-              className="px-4 py-2 rounded transition-colors duration-200
-                bg-theme-light-accent-primary dark:bg-theme-dark-accent-primary
-                text-white
-                hover:bg-theme-light-accent-hover dark:hover:bg-theme-dark-accent-hover"
-              onClick={handleExport}
-            >
-              <Download className="w-4 h-4 mr-2 inline" />
-              Export
-            </button>
-          </div>
+    <div className="relative">
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".json"
+        onChange={handleFileImport}
+      />
+      <div className="space-x-4 flex">
+        <button
+          className="px-4 py-2 rounded transition-colors duration-200
+            bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+            text-theme-light-text-primary dark:text-theme-dark-text-primary
+            hover:bg-theme-light-bg-hover dark:hover:bg-theme-dark-bg-hover"
+          onClick={() => setShowJson(!showJson)}
+        >
+          <Code className="w-4 h-4 mr-2 inline" />
+          View JSON
+        </button>
+        <button
+          className="px-4 py-2 rounded transition-colors duration-200
+            bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+            text-theme-light-text-primary dark:text-theme-dark-text-primary
+            hover:bg-theme-light-bg-hover dark:hover:bg-theme-dark-bg-hover"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="w-4 h-4 mr-2 inline" />
+          Import
+        </button>
+        <button
+          className="px-4 py-2 rounded transition-colors duration-200
+            bg-theme-light-accent-primary dark:bg-theme-dark-accent-primary
+            text-white
+            hover:bg-theme-light-accent-hover dark:hover:bg-theme-dark-accent-hover"
+          onClick={handleExport}
+        >
+          <Download className="w-4 h-4 mr-2 inline" />
+          Export
+        </button>
+      </div>
+      {importError && (
+        <div className="absolute right-0 top-full mt-8 w-full z-[100]">
+          <Alert
+            className="shadow-lg w-full bg-white dark:bg-theme-dark-bg-surface"
+            variant="destructive"
+          >
+            <AlertDescription>
+              {importError}
+            </AlertDescription>
+          </Alert>
         </div>
-      </header>
+      )}
+    </div>
+    </div>
+    </header>
       <main className="flex-grow overflow-hidden w-full bg-theme-light-bg-base dark:bg-theme-dark-bg-base">
         <TreeLayout>
           <div className={`flex gap-6 p-4 transition-all duration-200 ease-in-out bg-theme-light-bg-base dark:bg-theme-dark-bg-base ${showJson ? 'w-full' : 'max-w-4xl mx-auto'}`}>

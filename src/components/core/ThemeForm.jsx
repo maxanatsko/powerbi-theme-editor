@@ -23,6 +23,9 @@ export const ThemeForm = forwardRef(({ schema, initialData = {}, onChange }, ref
   }, [formData, onChange]);
 
   useImperativeHandle(ref, () => ({
+    resetForm: (newData) => {
+      resetForm(newData || {});
+    },
     getThemeData: () => formData,
     expandPath: (pathSegments) => {
       try {

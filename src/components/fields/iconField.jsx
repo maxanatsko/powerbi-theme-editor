@@ -3,10 +3,10 @@ import { PlusCircle, Trash2, Image, FileCode, AlertCircle } from 'lucide-react';
 
 export const IconField = ({ path, schema, value = {}, onChange }) => {
   const [newIconName, setNewIconName] = useState('');
-  
+
   const handleAddIcon = () => {
     if (!newIconName.trim()) return;
-    
+
     const newValue = {
       ...value,
       [newIconName]: {
@@ -35,8 +35,36 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
     onChange(path, newValue);
   };
 
-  const validateSvgUrl = (url) => {
-    return url.startsWith('data:image/svg+xml;utf8,') && url.includes('<svg');
+  const decodeSvgContent = (content) => {
+    // Decode HTML entities and URL-encoded values
+    return content
+      .replace(/'/g, '"')  // Replace single quotes with double quotes
+      .replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1));
+  };
+
+  const normalizeDataUrl = (url) => {
+    const trimmedUrl = url.trim();
+    const [prefix, ...rest] = trimmedUrl.split(',');
+    const content = rest.join(',').trim();
+
+    return {
+      prefix,
+      content: decodeSvgContent(content)
+    };
+  };
+
+  const validateImageUrl = (url) => {
+    const { prefix, content } = normalizeDataUrl(url);
+
+    // Allow data:image/svg+xml in various forms: 
+    // e.g. data:image/svg+xml;utf8  OR  data:image/svg+xml;charset=utf-8  etc.
+    const isSvg = prefix.includes('image/svg+xml') && content.includes('<svg');
+
+    const isPng = prefix === 'data:image/png;base64';
+
+    const isGif = prefix.includes('data:image/gif;base64');
+
+    return isSvg || isPng || isGif;
   };
 
   return (
@@ -114,8 +142,8 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
                       placeholder-theme-light-text-placeholder dark:placeholder-theme-dark-text-placeholder"
                     placeholder="data:image/svg+xml;utf8,<svg...>"
                   />
-                  {iconData.url && !validateSvgUrl(iconData.url) && (
-                    <div className="flex items-center text-amber-500" title="URL should start with 'data:image/svg+xml;utf8,' and contain SVG markup">
+                  {iconData.url && !validateImageUrl(iconData.url) && (
+                    <div className="flex items-center text-amber-500" title="URL should start with 'data:image/svg+xml;utf8,' (for SVG) or 'data:image/png;base64,' (for PNG)">
                       <AlertCircle className="w-4 h-4" />
                     </div>
                   )}
@@ -143,19 +171,44 @@ export const IconField = ({ path, schema, value = {}, onChange }) => {
                 />
               </div>
 
-              {iconData.url && validateSvgUrl(iconData.url) && (
+              {iconData.url && validateImageUrl(iconData.url) && (
                 <div className="mt-2">
-                  <label className="block text-sm font-medium mb-1
-                    text-theme-light-text-primary dark:text-theme-dark-text-primary">
-                    Preview
-                  </label>
-                  <div className="border rounded-lg p-4 flex items-center justify-center
-                    bg-theme-light-bg-input dark:bg-theme-dark-bg-input
-                    border-theme-light-border-default dark:border-theme-dark-border-default">
-                    <div 
-                      className="w-8 h-8"
-                      dangerouslySetInnerHTML={{ __html: iconData.url.replace('data:image/svg+xml;utf8,', '') }}
-                    />
+                <label className="block text-sm font-medium mb-1">Preview</label>
+                <div className="border rounded-lg p-4 flex items-center justify-center
+                                bg-theme-light-bg-input dark:bg-theme-dark-bg-input
+                                border-theme-light-border-default dark:border-theme-dark-border-default">
+                  {/* Force the preview area to 32px square */}
+                  <div className="flex items-center justify-center w-8 h-8 overflow-hidden">
+                      {(() => {
+                        const { prefix, content } = normalizeDataUrl(iconData.url);
+                        const isSvg = prefix.includes('image/svg+xml') && content.includes('<svg');
+
+                        // Enhanced SVG debug logging
+                        if (isSvg) {
+                          console.log('SVG Content:', {
+                            full: content,
+                            hasViewBox: content.includes('viewBox'),
+                            hasXmlns: content.includes('xmlns'),
+                            hasFill: content.includes('fill='),
+                            hasPath: content.includes('<path'),
+                            hasClosingSvgTag: content.includes('</svg>')
+                          });
+                        }
+
+                        const html = isSvg ? content : `<img src="${iconData.url}" alt="${iconData.description || 'Icon preview'}" class="w-auto h-auto max-w-full max-h-full" />`;
+
+                        return (
+                          <div className="flex items-center justify-center w-8 h-8 overflow-hidden">
+                            <div 
+        className="[&>svg]:w-full [&>svg]:h-auto 
+                    [&>svg]:max-w-full [&>svg]:max-h-full
+                    [&>svg]:overflow-hidden [&>svg]:box-content"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               )}

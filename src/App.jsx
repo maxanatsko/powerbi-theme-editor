@@ -4,7 +4,7 @@ import { ThemeForm } from './components/core/ThemeForm';
 import TreeLayout from './components/core/TreeLayout';
 import { Download, Upload, Code } from 'lucide-react';
 import { getLatestSchema } from './components/schemaVersions';
-//import JsonViewer from './components/core/JsonViewer';
+import JsonViewer from './components/core/JsonViewer';
 import SearchBar from './components/searchBar';
 
 const App = () => {
@@ -423,19 +423,7 @@ const App = () => {
                 onChange={(newData) => setThemeData(newData)}
               />
             </div>
-            {showJson && (
-              <div className="flex-[4] border-l pl-6 border-theme-light-border-default dark:border-theme-dark-border-default">
-              <div className="sticky top-0 pt-4">
-              <h2 className="text-lg font-semibold mb-4 text-theme-light-text-primary dark:text-theme-dark-text-primary">JSON</h2>
-              <pre className="p-4 rounded border text-sm font-mono whitespace-pre-wrap overflow-auto max-h-[calc(100vh-12rem)]
-                  bg-theme-light-bg-surface dark:bg-theme-dark-bg-surface
-                  text-theme-light-text-primary dark:text-theme-dark-text-primary
-                  border-theme-light-border-default dark:border-theme-dark-border-default">
-                    {JSON.stringify(themeData || {}, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            )}
+            {showJson && <JsonViewer data={themeData} />}
           </div>
         </TreeLayout>
       </main>

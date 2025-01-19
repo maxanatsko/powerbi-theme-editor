@@ -1,6 +1,19 @@
 # Power BI Theme Editor - Technical Architecture & Guidelines
 
-## Color Theme Structure
+## Table of Contents
+1. [Theme System](#theme-system)
+2. [Project Structure](#project-structure)
+3. [Component Architecture](#component-architecture)
+4. [Form Implementation](#form-implementation)
+5. [Schema Processing](#schema-processing)
+6. [UI Guidelines](#ui-guidelines)
+7. [Performance Guidelines](#performance-guidelines)
+8. [Function Dependencies](#function-dependencies)
+9. [Development Guidelines](#development-guidelines)
+10. [Build Tools](#build-tools)
+11. [UI Component Architecture](#ui-component-architecture)
+
+## Theme System
 
 ### Light/Dark Mode Implementation
 The application uses a structured theme system in tailwind.config.js with light and dark variants:
@@ -75,9 +88,8 @@ theme: {
 - Ensure proper focus states for keyboard navigation
 - Provide clear visual feedback for all interactions
 
+## Project Structure
 
-
-## Project File Structure
 ```
 powerbi-theme-editor/
 ├── src/
@@ -101,319 +113,358 @@ powerbi-theme-editor/
 │   │   │   ├── iconField.jsx          # Icon selection
 │   │   │   └── index.js               # Field exports
 │   │   ├── layouts/         # Layout components
+│   │   │   ├── CollapsibleSection.jsx # Collapsible sections
 │   │   │   └── VerticalNavigation.jsx # Vertical nav layout
 │   │   ├── renderers/       # Custom renderers
-│   │   │   ├── ArrayObjectRenderer.jsx    # Array rendering
-│   │   │   ├── ColorPickerRenderer.jsx    # Color picker
-│   │   │   └── ObjectRenderer.jsx         # Object rendering
-│   │   ├── FormField.jsx              # Base field component
+│   │   ├── common/          # Shared components
+│   │   │   ├── FormField.jsx          # Base field component
+│   │   │   ├── LabelWithTooltip.jsx   # Label with tooltip
+│   │   │   └── Tooltip.jsx            # Tooltip component
 │   │   ├── ThemeEditor.jsx            # Main editor component
-│   │   ├── schemaVersions.js          # Version management
-│   │   ├── searchBar.jsx              # Search functionality
-│   │   ├── searchBar.test.jsx         # Search tests
-│   │   └── searchResults.jsx          # Search results display
+│   │   └── search/          # Search components
 │   ├── hooks/               # Custom React hooks
-│   │   ├── useFormState.js            # Form state management
-│   │   ├── useSchemaForm.js           # Schema form handling
-│   │   ├── useSchemaResolution.js     # Schema resolution
-│   │   ├── useSchemaResolution.test.js # Resolution tests
-│   │   └── useThemeSearch.js          # Search functionality
 │   ├── utils/               # Utility functions
-│   │   ├── pathUtils.js               # Path handling
-│   │   ├── schemaLoader.js            # Schema loading
-│   │   ├── schemaUtils.js             # Schema processing
-│   │   ├── schemaUtils.test.js        # Schema tests
-│   │   └── search.js                  # Search utilities
 │   ├── App.jsx             # Main application
 │   └── main.jsx            # Entry point
 └── [other configuration files]
 ```
 
-## Function Map
-### Core Components Functions
+## Component Architecture
 
-#### ThemeForm.jsx
+### Core Components Hierarchy
+```
+ThemeEditor
+├── ThemeForm
+│   ├── FieldRenderer
+│   │   ├── FormField
+│   │   │   └── Field Components
+│   │   └── LabelWithTooltip
+│   └── CollapsibleSection
+└── JsonViewer
+```
+
+### Common Components
+
+#### FormField
 ```javascript
-exports {
-  ThemeForm: React.Component {
-    props: {
-      schema: Object,        // Form schema
-      onChange: Function,    // Value change handler
-      ref: {                 // Imperative handle
-        expandPath: Function // Expands form to show path
-      }
-    }
-    state: {
-      formData: Object,     // Current form data
-      errors: Object        // Validation errors
-    }
-    methods: {
-      handleChange(path, value),
-      validateForm(),
-      expandPath(segments)
-    }
+FormField: React.Component {
+  props: {
+    label: string,           // Field label
+    description?: string,    // Optional description for tooltip
+    tooltip?: string,        // Optional tooltip content
+    required?: boolean,      // Shows required indicator
+    className?: string,      // Optional styling classes
+    children: ReactNode      // Field content
   }
 }
 ```
 
-#### FieldRenderer.jsx
+#### LabelWithTooltip
 ```javascript
-exports {
-  FieldRenderer: React.Component {
-    props: {
-      schema: Object,      // Field schema
-      path: String,        // Field path
-      value: any,          // Current value
-      onChange: Function   // Change handler
-    }
-    methods: {
-      determineFieldType(schema): string,
-      renderField(): ReactNode
-    }
-  },
-  determineFieldType: Function(schema) => string
-}
-```
-
-### Field Components Functions
-
-#### ColorField.jsx
-```javascript
-exports {
-  ColorField: React.Component {
-    props: {
-      schema: Object,    // Color field schema
-      path: String,      // Field path
-      value: String,     // Current color
-      onChange: Function // Change handler
-    }
-    state: {
-      inputValue: String,
-      error: String
-    }
-    methods: {
-      validateColor(color): boolean,
-      handleInputChange(event),
-      handlePickerChange(color)
-    }
+LabelWithTooltip: React.Component {
+  props: {
+    label: string,           // Section/field label
+    description?: string,    // Optional description
+    className?: string,      // Optional styling classes
+    showChevron?: boolean   // Toggle for collapsible sections
   }
 }
 ```
 
-#### ObjectField.jsx
+#### Tooltip
 ```javascript
-exports {
-  ObjectField: React.Component {
-    props: {
-      schema: Object,    // Object schema
-      path: String,      // Field path
-      value: Object,     // Current object
-      onChange: Function // Change handler
-    }
-    methods: {
-      processComplexSchema(schema): Object,
-      renderProperties(): ReactNode[]
-    }
+Tooltip: React.Component {
+  props: {
+    content: string,        // Tooltip content
+    children: ReactNode,    // Trigger element
+    position?: 'top' | 'right' | 'bottom' | 'left',
+    maxWidth?: number      // Content wrapping
   }
 }
 ```
 
-#### iconField.jsx
+### Field Components
+
+#### ColorField
 ```javascript
-exports {
-  IconField: React.Component {
-    props: {
-      schema: Object,    // Field schema with icon configuration
-      path: String,      // Field path
-      value: Object,     // Current icons object
-      onChange: Function // Change handler
-    }
-    state: {
-      newIconName: String,  // For new icon creation
-    }
-    methods: {
-      handleAddIcon(): void,
-      handleRemoveIcon(iconName: string): void,
-      handleIconChange(iconName: string, field: string, value: string): void,
-      validateSvgUrl(url: string): boolean
-    }
+ColorField: React.Component {
+  props: {
+    schema: Object,      // Color field schema
+    path: String,        // Field path
+    value: String,       // Current color
+    onChange: Function,  // Change handler
+    required: Boolean    // If field is required
+  }
+  state: {
+    inputValue: String,  // Current input value
+    error: String       // Validation error
   }
 }
 ```
 
-#### TransparencyField.jsx
+#### ObjectField
 ```javascript
-exports {
-  TransparencyField: React.Component {
-    props: {
-      schema: Object,      // Field schema
-      path: String,        // Field path
-      value: Number,       // Current transparency value (0-100)
-      onChange: Function,  // Change handler
-      required: Boolean    // If field is required
-    }
-    state: {
-      localValue: Number   // For synchronizing slider and number input
-    }
-    methods: {
-      handleSliderChange(event): void,
-      handleNumberChange(event): void
-    }
+ObjectField: React.Component {
+  props: {
+    schema: Object,      // Object schema
+    path: String,        // Field path
+    value: Object,       // Current value
+    onChange: Function   // Change handler
+  }
+  methods: {
+    processSchema(): Object,
+    renderProperties(): ReactNode[]
   }
 }
 ```
 
-### UI Component Guidelines
-
-#### FormField Component
+#### IconField
 ```javascript
-exports {
-  FormField: React.Component {
-    props: {
-      label: string,           // Field label
-      description: string,     // Optional description for tooltip
-      tooltip: string,         // Optional tooltip content
-      required: boolean,       // Shows required indicator
-      className: string,       // Optional custom styling
-      children: ReactNode      // Field content
-    }
+IconField: React.Component {
+  props: {
+    schema: Object,      // Icon field schema
+    path: String,        // Field path
+    value: Object,       // Current value
+    onChange: Function   // Change handler
+  }
+  methods: {
+    validateSvgUrl(url: string): boolean,
+    handleIconChange(name: string, value: string): void
   }
 }
-
-Usage Guidelines
-1. Use for input fields that need labels and descriptions
-2. Only passes description/tooltip if actual content exists
-3. Dont use for section headers or structural elements
-
-#### Examples
-```javascript
-  // Field with description
-  <FormField
-    label="Field Name"
-    description="Helpful description here"
-    required={true}
-  >
-    <input ... />
-  </FormField>
-
-  // Simple field without description
-  <FormField
-    label="Field Name"
-  >
-    <input ... />
-  </FormField>
 ```
 
-#### Field Layout Guidelines
-Simple Fields
-- Use FormField wrapper
-- Include descriptions when available
-- Follow consistent margin patterns
+## Form Implementation
 
-Complex Fields (Arrays)
-- Use FormField only for the input area
-- Keep layout patterns consistent
-- Don't add tooltips to item headers
-
-Sections (Objects)
-- Don't use tooltips for section headers
-- Maintain clean hierarchical structure
-- Follow consistent spacing patterns
-
-### Hook Functions
-
-#### useSchemaForm.js
+### Form State Management
 ```javascript
-exports {
-  useSchemaForm: Function(schema, initialValue) => {
+// Form state hook
+useFormState: Hook {
+  returns: {
     formData: Object,      // Current form data
     errors: Object,        // Validation errors
-    isValid: boolean,      // Form validity
-    handleChange: Function,// Change handler
-    validateForm: Function,// Validation trigger
-    resetForm: Function    // Form reset
+    isDirty: boolean,      // Form modified state
+    resetForm: Function,   // Reset handler
+    validateForm: Function // Validation trigger
   }
 }
 ```
 
-#### useSchemaResolution.js
+### Validation Implementation
 ```javascript
-exports {
-  useSchemaResolution: Function(schema) => {
-    resolvedSchema: Object,// Resolved schema
-    isLoading: boolean,    // Loading state
-    error: Error          // Resolution error
-  },
-  resolveSchemaRef: Function(schema, rootSchema) => Object
+// Field validation flow
+validateField(value, schema, options) {
+  const mode = options.mode || 'onChange';
+  
+  if (mode === 'onChange') {
+    return debouncedValidate(value, schema);
+  }
+  
+  return validate(value, schema);
 }
 ```
-### Color Groups Implementation
-The application uses a structured color grouping system defined in `utils/colorGroups.js`:
 
-#### Color Grouping Rules
-1. **Path-Based Grouping**
-   - Only top-level color properties are grouped
-   - Properties in nested paths are rendered normally
-   - Path checks prevent grouping of similar-named nested properties
+### Schema Fetching
+```javascript
+// Schema fetching hook
+useFetchSchema: Hook {
+  returns: {
+    schema: Object | null,    // Processed schema
+    isLoading: boolean,       // Loading state
+    error: Error | null,      // Fetch error
+    refetch: Function        // Manual refetch trigger
+  }
+  
+  implementation: {
+    caching: 'localStorage',
+    retries: 3,
+    timeout: 5000,
+    preprocessingSteps: [
+      'resolveRefs',
+      'mergeAllOf',
+      'processTypes'
+    ]
+  }
+}
+```
 
-2. **Group Detection Chain**
+### Field Type Detection
+```javascript
+// Field type detection chain
+determineFieldType(schema) {
+  if (isColorField(schema)) return 'color';
+  if (isIconField(schema)) return 'icon';
+  if (isArrayField(schema)) return 'array';
+  return schema.type || 'string';
+}
+```
+
+## Schema Processing
+
+### Reference Resolution System
+The schema processing system handles complex references and type resolution.
+
+#### Resolution Stages
+1. **Load and Cache**
    ```javascript
-   // Color group detection chain
-   isColorField(fieldName, path)  // Checks if field should be grouped
-   -> getColorGroup(fieldName, path)  // Gets appropriate group
-   -> getColorGroups(schema, path)  // Builds group structure
-   UI Structure
+   async function loadSchema() {
+     const cached = await cacheManager.get('schema');
+     if (cached) return cached;
+     
+     const schema = await fetchSchema();
+     await cacheManager.set('schema', schema);
+     return schema;
+   }
+   ```
 
-3. **UI Structure**
-- Base Colors section appears after Text Classes
-- Each color group uses collapsible sections
-- Groups are collapsed by default
-- Maintains existing schema structure while providing organized UI
+2. **Reference Resolution**
+   ```javascript
+   function resolveReferences(schema, definitions) {
+     const cache = new WeakMap();
+     
+     return function resolve(node) {
+       if (cache.has(node)) return cache.get(node);
+       
+       const resolved = resolveNode(node, definitions);
+       cache.set(node, resolved);
+       return resolved;
+     }
+   }
+   ```
 
-4. **Modification Guidelines**
-- Add new color fields to appropriate groups in colorGroups.js
-- Maintain group order in groupOrder array
-- Ensure path checks for new color implementations
-- Test impact on nested properties
+3. **Type Resolution**
+   ```javascript
+   function resolveTypes(schema) {
+     if (schema.allOf) {
+       return mergeAllOf(schema.allOf);
+     }
+     
+     if (schema.anyOf) {
+       return resolveAnyOf(schema.anyOf);
+     }
+     
+     return schema;
+   }
+   ```
 
-### Utility Functions
-
-#### pathUtils.js
+### Pattern Property Handling
 ```javascript
-exports {
-  getPathSegments: Function(path: string) => string[],
-  setValueAtPath: Function(obj: Object, path: string, value: any) => Object,
-  getValueAtPath: Function(obj: Object, path: string) => any,
-  joinPath: Function(...segments: string[]) => string
+// Pattern property detection
+const patterns = {
+  wildcard: /^\*/,
+  numeric: /^\d+$/,
+  dynamic: /^\.+$/
+};
+
+function processPatternProperties(schema) {
+  if (!schema.patternProperties) return schema;
+  
+  return {
+    ...schema,
+    properties: resolvePatterns(schema.patternProperties)
+  };
 }
 ```
 
-#### schemaUtils.js
+## UI Guidelines
+
+### Layout Structure
+The application uses a hierarchical layout system with collapsible sections.
+
+#### Collapsible Sections
 ```javascript
-exports {
-  resolveInternalRefs: Function(schema, definitions) => Object,
-  createDefaultValue: Function(schema) => any,
-  validateField: Function(schema, value) => {
-    valid: boolean,
-    errors: string[]
-  },
-  getFieldType: Function(schema) => string,
-  processComplexSchema: Function(schema) => Object
-}
-```
-#### Color Group Utilities
-```javascript
-exports {
-  // Color group detection and processing
-  isColorField: Function(fieldName: string, path: string) => boolean,
-  getColorGroup: Function(fieldName: string, path: string) => string | null,
-  isColorGroupParent: Function(schema: Object, path: string) => boolean,
-  getColorGroups: Function(schema: Object, path: string) => Object | null
+CollapsibleSection: React.Component {
+  props: {
+    label: string,          // Section label
+    description?: string,   // Optional description
+    defaultExpanded?: boolean, // Initial state
+    level?: number,         // Nesting level (1-3)
+    children: ReactNode     // Section content
+  }
 }
 ```
 
+#### Section Guidelines
+1. Maximum nesting: 3 levels
+2. Consistent indentation
+3. Clear visual hierarchy
+4. Keyboard navigation support
+5. State persistence
+
+### Visual Hierarchy
+```
+Level 1: Main Categories
+└── Level 2: Sub-categories
+    └── Level 3: Field Groups
+        └── Individual Fields
+```
+
+### Form Layout
+```javascript
+// Basic field layout
+<FormField>
+  <label>
+    <span>{label}</span>
+    {required && <span className="text-red-500">*</span>}
+  </label>
+  <div className="field-wrapper">
+    {children}
+  </div>
+  {error && (
+    <span className="error-message">{error}</span>
+  )}
+</FormField>
+```
+
+## Performance Guidelines
+
+### Form Optimization
+
+#### Validation Modes
+```javascript
+{
+  mode: 'onChange' | 'onBlur' | 'onSubmit',
+  reValidateMode: 'onChange' | 'onBlur',
+  shouldUnregister: boolean,
+  delayError: number
+}
+```
+
+#### Performance Rules
+1. Use appropriate validation mode
+2. Implement debounced validation
+3. Cache validation results
+4. Optimize re-renders
+5. Lazy load components
+
+### State Management
+```javascript
+// Optimized state updates
+function updateFormState(path, value) {
+  setFormData(prev => {
+    if (isEqual(get(prev, path), value)) {
+      return prev;
+    }
+    return set({...prev}, path, value);
+  });
+}
+```
+
+### Render Optimization
+```javascript
+// Component optimization
+const MemoizedField = React.memo(({value, onChange}) => {
+  const handleChange = useCallback((newValue) => {
+    onChange(newValue);
+  }, [onChange]);
+
+  return <Field value={value} onChange={handleChange} />;
+});
+```
 
 ## Function Dependencies
+
+### Core Function Chain
 ```mermaid
 graph TD
     A[App.jsx] --> B[ThemeForm]
@@ -424,164 +475,413 @@ graph TD
     D --> G[pathUtils]
     B --> H[useSchemaResolution]
     H --> F
-    B --> I[TreeLayout]
 ```
 
-## Function Usage Guidelines
-
-### 1. Path Management Chain
+### Utility Dependencies
 ```javascript
-// Correct usage order
-const path = pathUtils.getPathSegments(rawPath);
-const value = pathUtils.getValueAtPath(formData, path);
-const newValue = fieldComponent.handleChange(value);
-pathUtils.setValueAtPath(formData, path, newValue);
+// Path utilities
+const pathUtils = {
+  getPathSegments,
+  joinPath,
+  getValueAtPath,
+  setValueAtPath
+};
+
+// Schema utilities
+const schemaUtils = {
+  resolveRefs,
+  processSchema,
+  validateSchema
+};
 ```
 
-### 2. Schema Processing Chain
-```javascript
-// Correct processing order
-const schemaLoader.loadSchema()
-  .then(schema => useSchemaResolution(schema))
-  .then(resolvedSchema => processComplexSchema(resolvedSchema))
-  .then(processedSchema => {
-    // Use in components
-  });
+## Development Guidelines
+
+### Code Organization
+1. Group related functionality
+2. Use consistent naming
+3. Maintain clear dependencies
+4. Document complex logic
+5. Write comprehensive tests
+
+### Testing Requirements
+1. Unit tests for utilities
+2. Component integration tests
+3. Form validation tests
+4. Schema processing tests
+5. Performance benchmarks
+
+### Documentation Standards
+1. Clear component APIs
+2. Usage examples
+3. Dependency documentation
+4. Performance considerations
+5. Accessibility notes
+
+## Change Management Guidelines
+
+### Change Impact Analysis
+
+#### Component Change Impact Levels
+```mermaid
+graph TD
+    A[High Impact] --> B[Core Components]
+    A --> C[Schema Processing]
+    A --> D[State Management]
+    E[Medium Impact] --> F[Field Components]
+    E --> G[UI Components]
+    E --> H[Hooks]
+    I[Low Impact] --> J[Utilities]
+    I --> K[Styling]
+    I --> L[Documentation]
 ```
 
+#### Impact Assessment Checklist
+1. **Schema Dependencies**
+   ```javascript
+   // Check for schema structure dependencies
+   const dependencies = {
+     schemaRefs: checkSchemaRefs(component),
+     typeValidation: checkTypeValidation(component),
+     pathHandling: checkPathHandling(component)
+   };
+   ```
 
-### 3. Component Update Flow
+2. **Component Dependencies**
+   - Parent components that might rerender
+   - Child components that depend on props
+   - Shared state dependencies
+   - Event handler chains
+
+3. **Data Flow Impact**
+   - Form state updates
+   - Validation chain
+   - Event propagation
+   - Cache invalidation
+
+#### Testing Requirements by Impact Level
 ```javascript
-// Proper component update sequence
-ThemeForm.handleChange(path, value)
-  -> FieldRenderer.renderField()
-  -> SpecificField.handleChange()
-  -> useSchemaForm.handleChange()
-  -> pathUtils.setValueAtPath()
+const testingRequirements = {
+  high: {
+    unit: ['core logic', 'edge cases'],
+    integration: ['component chain', 'state flow'],
+    e2e: ['critical paths']
+  },
+  medium: {
+    unit: ['component logic'],
+    integration: ['parent interaction'],
+    visual: ['regression']
+  },
+  low: {
+    unit: ['basic functionality'],
+    visual: ['component specific']
+  }
+};
 ```
 
-### 4. Error Propagation Chain
+### File Modification Checklist
+
+#### Before Modifying Core Files
+1. **Dependency Analysis**
+   ```javascript
+   // Example dependency check
+   const coreDependencies = {
+     directDependents: findDirectDependents(file),
+     stateDependencies: findStateDependencies(file),
+     schemaDependencies: findSchemaDependencies(file)
+   };
+   ```
+
+2. **State Impact**
+   - [ ] Check form state dependencies
+   - [ ] Review validation state impact
+   - [ ] Analyze cache implications
+   - [ ] Review error state handling
+
+3. **Schema Compatibility**
+   - [ ] Verify schema version compatibility
+   - [ ] Check reference resolution impact
+   - [ ] Test type validation changes
+   - [ ] Validate path handling
+
+4. **Performance Verification**
+   - [ ] Measure render impact
+   - [ ] Check memory usage
+   - [ ] Verify network calls
+   - [ ] Test large dataset handling
+
+#### Before Modifying Field Components
+1. **Field-Specific Checks**
+   ```javascript
+   const fieldChecklist = {
+     validation: checkValidationRules(field),
+     rendering: checkRenderingLogic(field),
+     stateHandling: checkStateManagement(field),
+     accessibility: checkA11y(field)
+   };
+   ```
+
+2. **Implementation Requirements**
+   - [ ] Verify schema pattern matching
+   - [ ] Check path construction
+   - [ ] Test value propagation
+   - [ ] Validate error handling
+
+3. **UI Considerations**
+   - [ ] Check responsive behavior
+   - [ ] Verify keyboard navigation
+   - [ ] Test focus management
+   - [ ] Validate ARIA attributes
+
+### Special Field Type Considerations
+
+#### Icon Fields
+1. **Schema Pattern**
+   ```javascript
+   const iconFieldSchema = {
+     anyOf: [{
+       type: "object",
+       patternProperties: {
+         ".*": {
+           $ref: "#/definitions/themeIcon"
+         }
+       }
+     }]
+   };
+   ```
+
+2. **Implementation Requirements**
+   - Must handle SVG validation
+   - Support both URL and inline SVG
+   - Maintain aspect ratio handling
+   - Implement proper caching
+
+3. **Change Considerations**
+   - Check icon resolution chain
+   - Verify preview generation
+   - Test URL validation
+   - Validate size constraints
+
+#### Color Fields
+1. **Schema Pattern**
+   ```javascript
+   const colorFieldSchema = {
+     type: "string",
+     pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$",
+     colorFormat: ["hex", "rgba"]
+   };
+   ```
+
+2. **Validation Chain**
+   - Format validation
+   - Alpha channel handling
+   - Intermediate state management
+   - Error state handling
+
+3. **Change Considerations**
+   - Check color picker integration
+   - Verify format conversion
+   - Test validation feedback
+   - Check performance impact
+
+#### Transparency Fields
+1. **Schema Pattern**
+   ```javascript
+   const transparencyFieldSchema = {
+     type: "number",
+     minimum: 0,
+     maximum: 100,
+     default: 100
+   };
+   ```
+
+2. **Implementation Requirements**
+   - Slider integration
+   - Numeric input sync
+   - Step validation
+   - Range constraints
+
+3. **Change Considerations**
+   - Check value synchronization
+   - Verify input methods
+   - Test boundary conditions
+   - Validate user feedback
+
+### Regression Prevention Guidelines
+
+#### Path Analysis
 ```javascript
-// Error handling flow
-SpecificField.validate()
-  -> useSchemaForm.validateField()
-  -> schemaUtils.validateField()
-  -> ThemeForm.handleError()
-  -> ErrorBoundary.catch()
+// Path impact analysis
+function analyzePathImpact(change) {
+  return {
+    affectedPaths: findAffectedPaths(change),
+    validationImpact: checkValidationPaths(change),
+    renderingImpact: checkRenderingPaths(change)
+  };
+}
 ```
 
-### 5. Icon Field Detection Chain
+#### State Flow Analysis
 ```javascript
-// Schema structure for icon fields
-{
-  anyOf: [
-    {
-      type: "object",
-      patternProperties: {
-        ".*" or ".+": Object // Either pattern triggers icon field
+// State flow verification
+function verifyStateFlow(change) {
+  return {
+    stateUpdates: trackStateUpdates(change),
+    sideEffects: findSideEffects(change),
+    optimizations: suggestOptimizations(change)
+  };
+}
+```
+
+#### Change Verification Process
+1. **Local Testing**
+   - Unit tests for changed code
+   - Integration tests for component chain
+   - Visual regression tests
+   - Performance benchmarks
+
+2. **Cross-Component Testing**
+   - Parent component behavior
+   - Child component updates
+   - Event propagation
+   - State synchronization
+
+3. **Schema Compatibility**
+   - Version compatibility
+   - Reference resolution
+   - Type validation
+   - Path handling
+
+4. **Performance Impact**
+   - Render timing
+   - Memory usage
+   - Network calls
+   - Large dataset handling
+
+5. **Documentation Updates**
+   - Component documentation
+   - Schema documentation
+   - Change logs
+   - Migration guides
+
+## Build Tools
+
+### Vite Schema Preprocessor
+The application uses a custom Vite plugin for schema preprocessing during build time.
+
+```javascript
+// vite-plugin-schema-preprocessor.js
+export default function schemaPreprocessor() {
+  return {
+    name: 'schema-preprocessor',
+    // Handles schema processing during build
+    transform(code, id) {
+      if (id.includes('schema.json')) {
+        return processSchema(code);
       }
-    },
-    // Alternative array format
-    {
-      type: "array",
-      items: Object
     }
+  }
+}
+```
+
+#### Features
+1. Pre-processes JSON schema during build
+2. Resolves schema references
+3. Optimizes schema structure
+4. Reduces runtime processing
+5. Improves initial load performance
+
+#### Configuration
+```javascript
+// vite.config.js
+import schemaPreprocessor from './vite-plugin-schema-preprocessor';
+
+export default {
+  plugins: [
+    schemaPreprocessor({
+      // Configuration options
+      cacheOutput: true,
+      minify: true,
+      resolveRefs: true
+    })
   ]
 }
 ```
 
-### 6. Range Input Pattern
+## UI Component Architecture
+
+The application follows a layered UI component architecture with shared base components.
+
+### Directory Structure
+```
+src/
+└── components/
+    └── ui/              # Base UI components
+        ├── label.jsx    # Label component
+        └── tooltip.jsx  # Tooltip component
+```
+
+### Base Components
+
+#### Label Component
 ```javascript
-// For range inputs with numerical value sync
-RangeField.handleChange()
-  -> Update local state
-  -> Validate range (min/max)
-  -> Propagate to form state
-  -> Update visual feedback
+Label: React.Component {
+  props: {
+    text: string,            // Label text
+    htmlFor?: string,        // Input association
+    required?: boolean,      // Required indicator
+    className?: string      // Custom styling
+  }
+}
 
-// Detection flow
-FieldRenderer.determineFieldType(schema)
-  -> Check schema.anyOf
-  -> Validate patternProperties
-  -> Return 'icon' type if matched
-  -> Render IconField component
+Usage:
+<Label 
+  text="Field Label" 
+  required={true}
+  htmlFor="field-id"
+/>
 ```
 
-## File Dependencies
+#### Tooltip Component
+```javascript
+Tooltip: React.Component {
+  props: {
+    content: string | ReactNode,  // Tooltip content
+    position?: Position,          // Tooltip position
+    delay?: number,              // Show/hide delay
+    children: ReactNode          // Trigger element
+  }
+}
 
-### Critical Dependencies
-1. **Schema Processing**
-   ```
-   schemaLoader.js → schemaUtils.js → useSchemaResolution.js
-   ```
-
-2. **Form Generation**
-   ```
-   ThemeForm.jsx → FieldRenderer.jsx → Field Components
-   ```
-
-3. **State Management**
-   ```
-   useFormState.js → useSchemaForm.js → Component State
-   ```
-
-4. **Icon Management**
-```
-iconField.jsx → index.js (registration) → FieldRenderer.jsx (detection)
+Usage:
+<Tooltip content="Helper text">
+  <button>Hover me</button>
+</Tooltip>
 ```
 
-### Change Impact Analysis
-Before modifying any file, check its dependencies:
+### Component Guidelines
 
-1. **High Impact Files**
-   - schemaUtils.js
-   - pathUtils.js
-   - FieldRenderer.jsx
-   - ThemeForm.jsx
+1. **Base Component Usage**
+   - Use base components for consistent styling
+   - Extend base components rather than create new ones
+   - Maintain accessibility features
+   - Follow established patterns
 
-2. **Medium Impact Files**
-   - Field Components
-   - useSchemaForm.js
-   - useSchemaResolution.js
+2. **Styling Approach**
+   ```javascript
+   // Preferred - Use composition
+   function CustomLabel({ className, ...props }) {
+     return (
+       <Label 
+         className={clsx("custom-styles", className)}
+         {...props}
+       />
+     );
+   }
+   ```
 
-3. **Localized Impact Files**
-   - Layout Components
-   - Search Components
-   - Individual Field Types
-
-## File Modification Checklist
-
-### Before Modifying Core Files
-1. Check dependent files
-2. Review function usage across project
-3. Verify test coverage
-4. Plan migration strategy
-5. Update documentation
-
-### Before Modifying Field Components
-1. Check parent component dependencies
-2. Verify schema compliance
-3. Test validation rules
-4. Update field-specific tests
-5. Document changes
-
-### Before Modifying Utilities
-1. Check all import locations
-2. Verify function signatures
-3. Test edge cases
-4. Update utility tests
-5. Document API changes
-
-### Special Field Type Considerations
-1. **Icon Fields**
-   - Must respect schema pattern with `anyOf` structure
-   - Support both `.*` and `.+` pattern properties
-   - Require proper field registration in `fields/index.js`
-   - Include SVG validation and preview capabilities
-
-2. **Transparency Fields**
-   - Must use type "number" in schema
-   - Detected by field name/title/description containing "transparency"
-   - Support both slider and direct number input
-   - Enforce value range 0-100
-   - Require proper field registration in `fields/index.js`
+3. **Accessibility Features**
+   - All base components include necessary ARIA attributes
+   - Support keyboard navigation
+   - Maintain focus management
+   - Provide screen reader context
